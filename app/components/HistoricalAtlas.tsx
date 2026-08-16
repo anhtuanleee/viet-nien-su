@@ -381,6 +381,7 @@ export default function HistoricalAtlas() {
   const [sharp3dEnabled, setSharp3dEnabled] = useState(false);
   const [depthPreset, setDepthPreset] = useState<DepthPreset>("standard");
   const [renderQuality, setRenderQuality] = useState<RenderQuality>("high");
+  const [qualityPreferenceLoaded, setQualityPreferenceLoaded] = useState(false);
   const [cinematic3dEnabled, setCinematic3dEnabled] = useState(false);
   const [contextEnabled, setContextEnabled] = useState(true);
   const [provincesEnabled, setProvincesEnabled] = useState(true);
@@ -499,15 +500,20 @@ export default function HistoricalAtlas() {
   };
 
   useEffect(() => {
-    const savedQuality = window.localStorage.getItem("dong-coi-viet-render-quality");
-    if (savedQuality === "low" || savedQuality === "medium" || savedQuality === "high") {
-      setRenderQuality(savedQuality);
-    }
+    const timer = window.setTimeout(() => {
+      const savedQuality = window.localStorage.getItem("dong-coi-viet-render-quality");
+      if (savedQuality === "low" || savedQuality === "medium" || savedQuality === "high") {
+        setRenderQuality(savedQuality);
+      }
+      setQualityPreferenceLoaded(true);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {
+    if (!qualityPreferenceLoaded) return;
     window.localStorage.setItem("dong-coi-viet-render-quality", renderQuality);
-  }, [renderQuality]);
+  }, [qualityPreferenceLoaded, renderQuality]);
 
   useEffect(() => {
     const activeNode = timelineViewportRef.current?.querySelector('[data-active="true"]');
@@ -565,7 +571,7 @@ export default function HistoricalAtlas() {
       mapRef.current = map;
       map.addControl(
         new maplibregl.NavigationControl({ visualizePitch: true, showCompass: true }),
-        "bottom-right",
+        "top-right",
       );
       map.addControl(
         new maplibregl.AttributionControl({
@@ -774,6 +780,31 @@ export default function HistoricalAtlas() {
         });
 
         map.addLayer({
+          id: "province-hover-outline",
+          type: "line",
+          source: "modern-provinces",
+          filter: emptyProvinceFilter,
+          paint: {
+            "line-color": "#f4d99d",
+            "line-width": ["interpolate", ["linear"], ["zoom"], 3, 1.3, 6, 2.2],
+            "line-opacity": 0.96,
+            "line-blur": 0.15,
+          },
+        });
+
+        map.addLayer({
+          id: "province-selected-outline",
+          type: "line",
+          source: "modern-provinces",
+          filter: emptyProvinceFilter,
+          paint: {
+            "line-color": "#fff0c9",
+            "line-width": ["interpolate", ["linear"], ["zoom"], 3, 1.8, 6, 3],
+            "line-opacity": 1,
+          },
+        });
+
+        map.addLayer({
           id: "island-points",
           type: "circle",
           source: "island-points",
@@ -975,6 +1006,7 @@ export default function HistoricalAtlas() {
           hoveredProvinceCode = province.code;
           map.getCanvas().style.cursor = "pointer";
           map.setFilter("province-hover", ["==", ["get", "code"], province.code]);
+          map.setFilter("province-hover-outline", ["==", ["get", "code"], province.code]);
           setHoveredProvince(province);
         });
 
@@ -982,6 +1014,7 @@ export default function HistoricalAtlas() {
           hoveredProvinceCode = "";
           map.getCanvas().style.cursor = "grab";
           map.setFilter("province-hover", emptyProvinceFilter);
+          map.setFilter("province-hover-outline", emptyProvinceFilter);
           setHoveredProvince(null);
         });
 
@@ -993,6 +1026,7 @@ export default function HistoricalAtlas() {
           setSelectedProvince(province);
           setProvinceHistoryOpen(false);
           map.setFilter("province-selected", ["==", ["get", "code"], province.code]);
+          map.setFilter("province-selected-outline", ["==", ["get", "code"], province.code]);
         });
 
         let hoveredHistoricalEventId = "";
@@ -1201,11 +1235,13 @@ export default function HistoricalAtlas() {
       map.setPaintProperty("province-hover", "fill-extrusion-base", terrainEnabled ? 15100 : 0);
       map.setPaintProperty("province-hover", "fill-extrusion-height", terrainEnabled ? 19000 : 0);
       map.setPaintProperty("province-hover", "fill-extrusion-vertical-gradient", terrainEnabled);
+      map.setPaintProperty("province-hover", "fill-extrusion-opacity", terrainEnabled ? 0.62 : 0.16);
     }
     if (map.getLayer("province-selected")) {
       map.setPaintProperty("province-selected", "fill-extrusion-base", terrainEnabled ? 15100 : 0);
       map.setPaintProperty("province-selected", "fill-extrusion-height", terrainEnabled ? 22500 : 0);
       map.setPaintProperty("province-selected", "fill-extrusion-vertical-gradient", terrainEnabled);
+      map.setPaintProperty("province-selected", "fill-extrusion-opacity", terrainEnabled ? 0.9 : 0.28);
     }
     if (map.getLayer("territory-glow")) {
       const dramatic = sharp3dEnabled && depthPreset === "cinematic";
@@ -1304,6 +1340,8 @@ export default function HistoricalAtlas() {
       "province-hit-area",
       "province-hover",
       "province-selected",
+      "province-hover-outline",
+      "province-selected-outline",
     ].forEach((layer) => {
       if (mapRef.current?.getLayer(layer)) {
         mapRef.current.setLayoutProperty(layer, "visibility", visibility);
@@ -1462,6 +1500,9 @@ export default function HistoricalAtlas() {
     if (mapRef.current?.getLayer("province-selected")) {
       mapRef.current.setFilter("province-selected", emptyProvinceFilter);
     }
+    if (mapRef.current?.getLayer("province-selected-outline")) {
+      mapRef.current.setFilter("province-selected-outline", emptyProvinceFilter);
+    }
   };
 
   const visibleProvince = selectedProvince ?? hoveredProvince;
@@ -1475,7 +1516,14 @@ export default function HistoricalAtlas() {
         className={`map-canvas ${mapReady && !webglUnavailable ? "is-ready" : ""}`}
         aria-label="Bản đồ lịch sử Việt Nam tương tác"
       />
-      {(!mapReady || webglUnavailable) && (
+      {!mapReady && !webglUnavailable && (
+        <div className="map-loader" role="status" aria-live="polite">
+          <span aria-hidden="true" />
+          <strong>Đang dựng bản đồ lịch sử</strong>
+          <small>Chuẩn bị địa hình, ranh giới và dữ liệu thời kỳ…</small>
+        </div>
+      )}
+      {webglUnavailable && (
         <div className="fallback-map" aria-label="Bản đồ 2D dự phòng">
           <svg viewBox="0 0 1000 760" role="img" aria-label={`Phạm vi ${activePeriod.name}`}>
             <defs>
@@ -1612,7 +1660,7 @@ export default function HistoricalAtlas() {
             ))}
           </svg>
           <span className="fallback-badge">
-            {webglUnavailable ? "Chế độ bản đồ 2D · Thiết bị không có WebGL" : "Đang nâng cấp bản đồ lên 3D…"}
+            Chế độ bản đồ 2D · Thiết bị không có WebGL
           </span>
         </div>
       )}
@@ -1758,6 +1806,7 @@ export default function HistoricalAtlas() {
         </button>
       </aside>
 
+      <div className="right-panel-stack">
       <aside className={`layer-panel ${controlsOpen ? "is-open" : ""}`}>
         <div className="layer-panel-heading">
           <span><Layers3 size={15} /> Lớp hiển thị</span>
@@ -1972,6 +2021,7 @@ export default function HistoricalAtlas() {
         <span><i className="legend-island" /> Đảo / quần đảo</span>
         <span><i className="legend-event" /> Sự kiện lịch sử</span>
       </aside>
+      </div>
 
       {historicalEventsEnabled && visibleHistoricalEvent && (
         <aside className={`province-card historical-event-card ${selectedHistoricalEvent ? "is-selected" : ""}`} aria-live="polite">

@@ -151,16 +151,16 @@ input:focus-visible {
 .fallback-province:hover,
 .fallback-province:focus,
 .fallback-province.is-hovered {
-  fill: rgba(240, 198, 111, 0.48);
+  fill: rgba(240, 198, 111, 0.16);
   stroke: #f5e4be;
-  stroke-width: 1.2;
+  stroke-width: 1.05;
   outline: none;
 }
 
 .fallback-province.is-selected {
-  fill: rgba(241, 226, 189, 0.76);
+  fill: rgba(241, 226, 189, 0.28);
   stroke: #fff3d4;
-  stroke-width: 1.5;
+  stroke-width: 1.25;
 }
 
 .fallback-island {
@@ -275,10 +275,27 @@ input:focus-visible {
   place-content: center;
   gap: 14px;
   text-align: center;
-  background: #101817;
+  background:
+    radial-gradient(circle at 50% 43%, rgba(215, 167, 90, 0.07), transparent 24%),
+    #101817;
   color: var(--paper-muted);
   letter-spacing: 0.09em;
   font-size: 12px;
+}
+
+.map-loader strong {
+  color: #eee3ca;
+  font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  font-size: 18px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+.map-loader small {
+  color: #776f61;
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .map-loader span {
@@ -893,19 +910,33 @@ input:focus-visible {
   color: var(--paper-muted);
 }
 
-.layer-panel {
+.right-panel-stack {
   position: absolute;
   z-index: 9;
   top: 111px;
   right: 34px;
-  width: 214px;
+  bottom: 151px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 260px;
+  pointer-events: none;
+}
+
+.layer-panel {
+  position: relative;
+  z-index: 1;
+  flex: 0 1 auto;
+  width: 100%;
+  min-height: 0;
+  max-height: calc(100% - 92px);
   padding: 14px 15px 13px;
   border: 1px solid var(--line);
   background: rgba(13, 20, 19, 0.78);
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.22);
   backdrop-filter: blur(16px);
-  max-height: calc(100dvh - 262px);
   overflow-y: auto;
+  pointer-events: auto;
 }
 
 .layer-panel-heading,
@@ -1291,17 +1322,18 @@ input:focus-visible {
 }
 
 .legend-card {
-  position: absolute;
-  z-index: 7;
-  right: 34px;
-  bottom: 151px;
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
   display: grid;
-  grid-template-columns: repeat(2, auto);
-  gap: 9px 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px 12px;
+  width: 100%;
   padding: 12px 14px;
   border: 1px solid rgba(236, 227, 204, 0.12);
   background: rgba(13, 20, 19, 0.72);
   backdrop-filter: blur(12px);
+  pointer-events: auto;
 }
 
 .legend-card span {
@@ -1809,8 +1841,11 @@ input:focus-visible {
 }
 
 .atlas-shell.compare-active .story-card,
-.atlas-shell.compare-active .layer-panel {
+.atlas-shell.compare-active .right-panel-stack {
   top: 266px;
+}
+
+.atlas-shell.compare-active .story-card {
   max-height: calc(100dvh - 417px);
 }
 
@@ -2024,9 +2059,24 @@ input:focus-visible {
   left: 25px !important;
 }
 
-.maplibregl-ctrl-bottom-right {
-  right: 28px !important;
-  bottom: 224px !important;
+.maplibregl-ctrl-top-right {
+  top: 96px !important;
+  right: 312px !important;
+}
+
+.maplibregl-ctrl-top-right .maplibregl-ctrl {
+  margin: 15px 0 0 !important;
+}
+
+.atlas-shell.ui-hidden .maplibregl-ctrl-top-right {
+  top: auto !important;
+  right: 20px !important;
+  bottom: 20px !important;
+}
+
+.atlas-shell.ui-hidden .maplibregl-ctrl-bottom-left {
+  bottom: 10px !important;
+  left: 10px !important;
 }
 
 .maplibregl-ctrl-group {
@@ -2102,7 +2152,8 @@ input:focus-visible {
     transform: none;
   }
   .atlas-shell.compare-active .story-card,
-  .atlas-shell.compare-active .layer-panel { top: 258px; max-height: calc(100dvh - 409px); }
+  .atlas-shell.compare-active .right-panel-stack { top: 258px; }
+  .atlas-shell.compare-active .story-card { max-height: calc(100dvh - 409px); }
   @keyframes compare-in {
     from { opacity: 0; transform: translateY(-8px); }
     to { opacity: 1; transform: translateY(0); }
@@ -2189,6 +2240,7 @@ input:focus-visible {
   .story-description { margin: 14px 0; font-size: 11px; }
   .story-meta { grid-template-columns: 1fr; gap: 12px; padding: 13px 0; }
   .layer-panel {
+    position: absolute;
     top: 78px;
     right: 18px;
     width: 230px;
@@ -2222,7 +2274,7 @@ input:focus-visible {
   .timeline-track button span { display: block; }
   .modern-context-note { display: none; }
   .maplibregl-ctrl-bottom-left { bottom: 129px !important; left: 12px !important; }
-  .maplibregl-ctrl-bottom-right { display: none; }
+  .maplibregl-ctrl-top-right { display: none; }
   .fallback-map svg { transform: scale(1.35) translateX(-2%); }
   .fallback-badge { display: none; }
 }
@@ -2288,3 +2340,8 @@ input:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
+  .right-panel-stack {
+    position: static;
+    display: block;
+    width: auto;
+  }
