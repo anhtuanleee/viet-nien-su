@@ -1,8 +1,10 @@
 "use client";
+/* eslint-disable @next/next/no-html-link-for-pages -- Vinext preview requires full-page navigation for these routes. */
 
 import {
   ArrowLeft,
   ArrowRight,
+  ArrowUpRight,
   BookOpen,
   ChevronDown,
   CircleHelp,
@@ -29,6 +31,8 @@ import type {
 } from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { historicalEvents } from "../data/events";
+import type { HistoricalEventSummary as HistoricalEventInfo } from "../data/events";
 import { periods, sourceLinks, territoryData } from "../data/historical";
 
 const historicalContextLabels = (year: number) => {
@@ -81,26 +85,6 @@ type IslandInfo = {
   region: string;
   coordinates: [number, number];
 };
-
-type HistoricalEventInfo = {
-  id: string;
-  name: string;
-  year: number;
-  periodId: string;
-  location: string;
-  summary: string;
-  coordinates: [number, number];
-};
-
-const historicalEvents: HistoricalEventInfo[] = [
-  { id: "bach-dang-938", name: "Bạch Đằng", year: 938, periodId: "ngo-quyen", location: "Cửa sông Bạch Đằng", summary: "Chiến thắng mở đầu thời kỳ độc lập tự chủ lâu dài.", coordinates: [106.78, 20.91] },
-  { id: "nhu-nguyet-1077", name: "Phòng tuyến Như Nguyệt", year: 1077, periodId: "dai-viet-1069", location: "Sông Cầu", summary: "Phòng tuyến bảo vệ trung tâm Đại Việt trong cuộc kháng chiến chống Tống.", coordinates: [106.05, 21.22] },
-  { id: "bach-dang-1288", name: "Bạch Đằng", year: 1288, periodId: "dai-viet-1306", location: "Vùng Tràng Kênh – Bạch Đằng", summary: "Trận thủy chiến tiêu biểu dưới thời Trần.", coordinates: [106.79, 20.92] },
-  { id: "chi-lang-1427", name: "Chi Lăng – Xương Giang", year: 1427, periodId: "hau-le-1428", location: "Lạng Sơn – Bắc Giang", summary: "Chuỗi trận quyết định ở giai đoạn cuối khởi nghĩa Lam Sơn.", coordinates: [106.45, 21.55] },
-  { id: "rach-gam-1785", name: "Rạch Gầm – Xoài Mút", year: 1785, periodId: "tay-son", location: "Sông Tiền", summary: "Trận thủy chiến tiêu biểu do Nguyễn Huệ chỉ huy.", coordinates: [106.26, 10.34] },
-  { id: "ngoc-hoi-1789", name: "Ngọc Hồi – Đống Đa", year: 1789, periodId: "tay-son", location: "Thăng Long", summary: "Chiến thắng đầu xuân Kỷ Dậu dưới thời Quang Trung.", coordinates: [105.84, 20.99] },
-  { id: "dien-bien-phu-1954", name: "Điện Biên Phủ", year: 1954, periodId: "chia-cat-1954", location: "Điện Biên", summary: "Chiến dịch kết thúc ngày 7/5/1954, tạo bước ngoặt cho tiến trình Genève.", coordinates: [103.01, 21.39] },
-];
 
 const historicalEventData = {
   type: "FeatureCollection" as const,
@@ -401,7 +385,7 @@ const geometryArea = (geometry: PolygonGeometry | MultiPolygonGeometry) => {
   );
 };
 
-export default function HistoricalAtlas() {
+export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?: string } = {}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const timelineViewportRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -409,7 +393,12 @@ export default function HistoricalAtlas() {
   const neighborMarkerRefs = useRef<Marker[]>([]);
   const playTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const cinematicTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [activeIndex, setActiveIndex] = useState(initialPeriodIndex);
+  const [activeIndex, setActiveIndex] = useState(() => {
+    const requestedIndex = initialPeriodId
+      ? periods.findIndex((period) => period.id === initialPeriodId)
+      : -1;
+    return requestedIndex >= 0 ? requestedIndex : initialPeriodIndex;
+  });
   const [eventFilter, setEventFilter] = useState<EventFilter>("all");
   const [storyModeEnabled, setStoryModeEnabled] = useState(false);
   const [compareEnabled, setCompareEnabled] = useState(false);
@@ -1782,6 +1771,9 @@ export default function HistoricalAtlas() {
           >
             <GitCompareArrows size={16} /> So sánh
           </button>
+          <a className="text-button event-library-trigger" href="/su-kien">
+            <History size={16} /> Hồ sơ sự kiện
+          </a>
           <button className="text-button" onClick={() => setSourcesOpen(true)}>
             <BookOpen size={16} /> Nguồn tư liệu
           </button>
@@ -2075,7 +2067,10 @@ export default function HistoricalAtlas() {
         </div>
         {historicalEventsEnabled && activeHistoricalEvents.length > 0 && (
           <div className="historical-event-list" aria-label="Sự kiện lịch sử tại mốc đang xem">
-            <div className="island-list-heading"><span>Sự kiện tại mốc này</span><small>{activeHistoricalEvents.length}</small></div>
+            <div className="island-list-heading">
+              <span>Sự kiện tại mốc này</span>
+              <a href="/su-kien">Hồ sơ <ArrowUpRight size={11} /></a>
+            </div>
             {activeHistoricalEvents.map((historicalEvent) => (
               <button
                 key={historicalEvent.id}
@@ -2143,6 +2138,11 @@ export default function HistoricalAtlas() {
             <strong>{visibleHistoricalEvent.name}</strong>
             <small>{visibleHistoricalEvent.location}</small>
             <p>{visibleHistoricalEvent.summary}</p>
+            {visibleHistoricalEvent.hasDetail && (
+              <a className="historical-event-read" href={`/su-kien/${visibleHistoricalEvent.slug}`}>
+                Đọc hồ sơ đầy đủ <ArrowUpRight size={13} />
+              </a>
+            )}
           </div>
           {selectedHistoricalEvent && (
             <button onClick={clearHistoricalEventSelection} aria-label="Bỏ chọn sự kiện"><X size={15} /></button>
