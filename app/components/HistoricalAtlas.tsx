@@ -9,7 +9,6 @@ import {
   GitCompareArrows,
   History,
   Gauge,
-  GripHorizontal,
   Eye,
   EyeOff,
   Layers3,
@@ -29,7 +28,6 @@ import type {
   StyleSpecification,
 } from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { PointerEvent as ReactPointerEvent } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { periods, sourceLinks, territoryData } from "../data/historical";
 
@@ -83,9 +81,6 @@ type IslandInfo = {
   region: string;
   coordinates: [number, number];
 };
-
-type PanelId = "story" | "compare" | "tools" | "province-history";
-type PanelPosition = { x: number; y: number };
 
 type HistoricalEventInfo = {
   id: string;
@@ -449,66 +444,6 @@ export default function HistoricalAtlas() {
   const [uiHidden, setUiHidden] = useState(false);
   const [storyPanelOpen, setStoryPanelOpen] = useState(true);
   const [legendOpen, setLegendOpen] = useState(true);
-  const [panelPositions, setPanelPositions] = useState<Partial<Record<PanelId, PanelPosition>>>(() => {
-    if (typeof window === "undefined") return {};
-    try {
-      const stored = window.localStorage.getItem("dong-coi-viet-panel-positions");
-      return stored ? JSON.parse(stored) as Partial<Record<PanelId, PanelPosition>> : {};
-    } catch {
-      return {};
-    }
-  });
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem("dong-coi-viet-panel-positions", JSON.stringify(panelPositions));
-    } catch {
-      // Dragging still works for the current session without persistence.
-    }
-  }, [panelPositions]);
-
-  const draggablePanelStyle = (panelId: PanelId) => {
-    const position = panelPositions[panelId];
-    return position
-      ? { left: `${position.x}px`, top: `${position.y}px`, right: "auto", bottom: "auto", transform: "none" }
-      : undefined;
-  };
-
-  const beginPanelDrag = (
-    panelId: PanelId,
-    selector: string,
-    event: ReactPointerEvent<HTMLElement>,
-  ) => {
-    if (event.button !== 0 || window.matchMedia("(max-width: 900px)").matches) return;
-    if ((event.target as HTMLElement).closest("button, select, input, a")) return;
-    const panel = event.currentTarget.closest<HTMLElement>(selector);
-    if (!panel) return;
-
-    event.preventDefault();
-    const bounds = panel.getBoundingClientRect();
-    const offsetX = event.clientX - bounds.left;
-    const offsetY = event.clientY - bounds.top;
-    const move = (pointerEvent: PointerEvent) => {
-      const maxX = Math.max(12, window.innerWidth - bounds.width - 12);
-      const maxY = Math.max(78, window.innerHeight - bounds.height - 146);
-      setPanelPositions((current) => ({
-        ...current,
-        [panelId]: {
-          x: Math.min(maxX, Math.max(12, pointerEvent.clientX - offsetX)),
-          y: Math.min(maxY, Math.max(78, pointerEvent.clientY - offsetY)),
-        },
-      }));
-    };
-    const finish = () => {
-      document.removeEventListener("pointermove", move);
-      document.removeEventListener("pointerup", finish);
-      document.body.classList.remove("panel-is-dragging");
-    };
-
-    document.body.classList.add("panel-is-dragging");
-    document.addEventListener("pointermove", move);
-    document.addEventListener("pointerup", finish, { once: true });
-  };
 
   const activePeriod = periods[activeIndex];
   const comparePeriod = periods[compareIndex];
@@ -1879,8 +1814,8 @@ export default function HistoricalAtlas() {
       </header>
 
       {compareEnabled && (
-        <aside className="compare-panel" style={draggablePanelStyle("compare")} aria-label="So sánh hai thời đại">
-          <div className="compare-panel-heading panel-drag-handle" onPointerDown={(event) => beginPanelDrag("compare", ".compare-panel", event)}>
+        <aside className="compare-panel" aria-label="So sánh hai thời đại">
+          <div className="compare-panel-heading">
             <span><GitCompareArrows size={15} /> So sánh lãnh thổ</span>
             <button onClick={() => setCompareEnabled(false)} aria-label="Đóng chế độ so sánh"><X size={16} /></button>
           </div>
@@ -1916,10 +1851,7 @@ export default function HistoricalAtlas() {
         </button>
       )}
 
-      {storyPanelOpen && <aside className="story-card" style={draggablePanelStyle("story")} aria-live="polite">
-        <div className="story-drag-handle panel-drag-handle" onPointerDown={(event) => beginPanelDrag("story", ".story-card", event)} title="Kéo để di chuyển panel">
-          <GripHorizontal size={17} />
-        </div>
+      {storyPanelOpen && <aside className="story-card" aria-live="polite">
         <button className="story-panel-close" onClick={() => setStoryPanelOpen(false)} aria-label="Đóng thông tin thời kỳ"><X size={16} /></button>
         {storyModeEnabled && <div className="story-tour-progress" style={{ width: `${((activeIndex + 1) / periods.length) * 100}%` }} />}
         <div className="story-index">{String(activeIndex + 1).padStart(2, "0")}</div>
@@ -1953,12 +1885,19 @@ export default function HistoricalAtlas() {
         </button>
       </aside>}
 
-      <div className="right-panel-stack" style={draggablePanelStyle("tools")}>
-      <aside className={`layer-panel ${controlsOpen ? "is-open" : ""}`}>
-        <div className="layer-panel-heading panel-drag-handle" onPointerDown={(event) => beginPanelDrag("tools", ".right-panel-stack", event)}>
-          <span><Layers3 size={15} /> Lớp hiển thị</span>
+      <div className="right-panel-stack">
+      <div className={`layer-panel-group ${controlsOpen ? "is-open" : ""}`}>
+      <aside className="layer-panel layer-panel-core">
+        <div className="layer-panel-heading">
+          <span><Layers3 size={15} /> Bộ lọc bản đồ</span>
           <button onClick={() => setControlsOpen(false)} aria-label="Đóng tùy chọn"><X size={16} /></button>
         </div>
+        <details className="advanced-display-settings">
+          <summary>
+            <span><Gauge size={14} /> Hiệu năng & 3D</span>
+            <ChevronDown size={15} aria-hidden="true" />
+          </summary>
+          <div className="advanced-display-content">
         <div className="quality-control">
           <div className="depth-control-heading">
             <span><Gauge size={14} /> Chất lượng render</span>
@@ -2059,6 +1998,8 @@ export default function HistoricalAtlas() {
           />
           <i />
         </label>
+          </div>
+        </details>
         <label>
           <span><MapPinned size={15} /> Nước lân cận</span>
           <input type="checkbox" checked={contextEnabled} onChange={(event) => setContextEnabled(event.target.checked)} />
@@ -2125,6 +2066,13 @@ export default function HistoricalAtlas() {
             ))}
           </div>
         </div>
+        <button className="reset-view" onClick={resetView}><RotateCcw size={14} /> Đặt lại góc nhìn</button>
+      </aside>
+
+      <aside className="layer-panel layer-panel-information">
+        <div className="layer-panel-heading layer-panel-heading-static">
+          <span><CircleHelp size={15} /> Thông tin bổ trợ</span>
+        </div>
         {historicalEventsEnabled && activeHistoricalEvents.length > 0 && (
           <div className="historical-event-list" aria-label="Sự kiện lịch sử tại mốc đang xem">
             <div className="island-list-heading"><span>Sự kiện tại mốc này</span><small>{activeHistoricalEvents.length}</small></div>
@@ -2169,13 +2117,10 @@ export default function HistoricalAtlas() {
             <p>Lớp định vị hiện đại, không suy diễn cho mọi thời kỳ.</p>
           </div>
         )}
-        <button className="reset-view" onClick={resetView}><RotateCcw size={14} /> Đặt lại góc nhìn</button>
       </aside>
+      </div>
 
       {legendOpen ? <aside className="legend-card">
-        <div className="legend-drag-handle panel-drag-handle" onPointerDown={(event) => beginPanelDrag("tools", ".right-panel-stack", event)} title="Kéo để di chuyển panel">
-          <GripHorizontal size={15} />
-        </div>
         <button className="legend-close" onClick={() => setLegendOpen(false)} aria-label="Đóng chú giải"><X size={14} /></button>
         <span><i className="legend-direct" /> Kiểm soát trực tiếp</span>
         <span><i className="legend-autonomous" /> Tự trị / phụ thuộc</span>
@@ -2256,8 +2201,8 @@ export default function HistoricalAtlas() {
       )}
 
       {selectedProvince && provinceHistoryOpen && (
-        <aside className="province-history-panel" style={draggablePanelStyle("province-history")} aria-label={`Lịch sử địa phương ${selectedProvince.name}`}>
-          <div className="province-history-heading panel-drag-handle" onPointerDown={(event) => beginPanelDrag("province-history", ".province-history-panel", event)}>
+        <aside className="province-history-panel" aria-label={`Lịch sử địa phương ${selectedProvince.name}`}>
+          <div className="province-history-heading">
             <div>
               <span>Lịch sử địa phương</span>
               <h3>{selectedProvince.fullName}</h3>

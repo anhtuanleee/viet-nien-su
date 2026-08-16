@@ -739,31 +739,6 @@ input:focus-visible {
   border-radius: 50%;
 }
 
-.panel-drag-handle {
-  cursor: grab;
-  touch-action: none;
-  user-select: none;
-}
-
-.panel-drag-handle:active,
-.panel-is-dragging .panel-drag-handle { cursor: grabbing; }
-
-.panel-is-dragging,
-.panel-is-dragging * { user-select: none !important; }
-
-.story-drag-handle {
-  position: absolute;
-  z-index: 4;
-  top: 8px;
-  left: 50%;
-  display: grid;
-  place-items: center;
-  width: 42px;
-  height: 24px;
-  color: rgba(236, 227, 204, 0.36);
-  transform: translateX(-50%);
-}
-
 @keyframes card-in {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
@@ -987,18 +962,38 @@ input:focus-visible {
   bottom: 151px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  width: 260px;
+  gap: 14px;
+  width: min(280px, calc(100vw - 68px));
   pointer-events: none;
+}
+
+.layer-panel-group {
+  position: relative;
+  z-index: 1;
+  display: none;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  min-height: 0;
+  max-height: calc(100% - 92px);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-8px);
+}
+
+.layer-panel-group.is-open {
+  display: flex;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
 }
 
 .layer-panel {
   position: relative;
   z-index: 1;
-  flex: 0 1 auto;
   width: 100%;
   min-height: 0;
-  max-height: min(calc(100% - 92px), 520px);
   padding: 14px 15px 13px;
   border: 1px solid var(--line);
   background: rgba(13, 20, 19, 0.78);
@@ -1006,16 +1001,10 @@ input:focus-visible {
   backdrop-filter: blur(16px);
   overflow-y: auto;
   pointer-events: auto;
-  display: none;
-  opacity: 0;
-  transform: translateY(-8px);
 }
 
-.layer-panel.is-open {
-  display: block;
-  opacity: 1;
-  transform: translateY(0);
-}
+.layer-panel-core { flex: 0 1 auto; max-height: min(430px, 64%); }
+.layer-panel-information { flex: 1 1 190px; max-height: 36%; }
 
 .layer-panel-heading,
 .layer-panel-heading span,
@@ -1030,6 +1019,45 @@ input:focus-visible {
   justify-content: space-between;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--line);
+}
+
+.layer-panel-heading-static { min-height: 33px; }
+
+.advanced-display-settings {
+  margin: 10px 0 4px;
+  border: 1px solid rgba(236, 227, 204, 0.1);
+  background: rgba(236, 227, 204, 0.025);
+}
+
+.advanced-display-settings summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 40px;
+  padding: 0 10px;
+  color: #aaa18e;
+  cursor: pointer;
+  list-style: none;
+}
+
+.advanced-display-settings summary::-webkit-details-marker { display: none; }
+
+.advanced-display-settings summary span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.advanced-display-settings summary > svg { transition: transform 0.2s ease; }
+.advanced-display-settings[open] summary > svg { transform: rotate(180deg); }
+
+.advanced-display-content {
+  padding: 0 10px 9px;
+  border-top: 1px solid rgba(236, 227, 204, 0.08);
 }
 
 .layer-panel-heading span {
@@ -1220,7 +1248,7 @@ input:focus-visible {
 
 .event-filter-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 5px;
 }
 
@@ -1424,19 +1452,6 @@ input:focus-visible {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-}
-
-.legend-drag-handle {
-  position: absolute;
-  z-index: 2;
-  top: 0;
-  left: 50%;
-  display: grid;
-  place-items: center;
-  width: 42px;
-  height: 22px;
-  color: rgba(236, 227, 204, 0.34);
-  transform: translateX(-50%);
 }
 
 .legend-card span:nth-of-type(2) {
@@ -2300,9 +2315,6 @@ input:focus-visible {
     width: 42px;
     height: 42px;
   }
-  .panel-drag-handle { cursor: default; touch-action: auto; }
-  .story-drag-handle,
-  .legend-drag-handle { display: none; }
   .right-panel-stack {
     position: static !important;
     inset: auto !important;
@@ -2364,19 +2376,32 @@ input:focus-visible {
   .story-tour-state { margin-top: 8px; }
   .story-description { margin: 14px 0; font-size: 11px; }
   .story-meta { grid-template-columns: 1fr; gap: 12px; padding: 13px 0; }
-  .layer-panel {
+  .layer-panel-group {
     position: absolute;
     top: 78px;
     right: 16px;
-    width: min(280px, calc(100vw - 72px));
-    max-width: 280px;
-    max-height: min(58dvh, 440px);
+    display: none;
+    width: min(300px, calc(100vw - 48px));
+    max-width: 300px;
+    max-height: calc(100dvh - 218px);
+    gap: 10px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
     opacity: 0;
     pointer-events: none;
     transform: translateY(-8px);
     transition: 0.22s ease;
   }
-  .layer-panel.is-open { display: block; opacity: 1; pointer-events: auto; transform: translateY(0); }
+  .layer-panel-group.is-open { display: flex; opacity: 1; pointer-events: auto; transform: translateY(0); }
+  .layer-panel {
+    position: relative;
+    inset: auto;
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: none;
+  }
+  .layer-panel-core { max-height: none; }
+  .layer-panel-information { max-height: min(34dvh, 300px); }
   .layer-panel-heading button { display: grid; }
   .legend-card { display: none; }
   .province-card {
