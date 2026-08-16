@@ -1,108 +1,93 @@
-# vinext-starter
+# Dòng Cõi Việt
 
-A clean full-stack starter running on
-[vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and
-Drizzle support.
+Dòng Cõi Việt là bản đồ lịch sử tương tác giúp khám phá sự thay đổi lãnh thổ Việt Nam qua nhiều thời kỳ, từ Văn Lang đến Việt Nam hiện đại.
 
-## Prerequisites
+Ứng dụng kết hợp dòng thời gian, bản đồ 3D, lớp tỉnh thành hiện đại, địa danh biển đảo và các sự kiện tiêu biểu để người xem đối chiếu không gian lịch sử theo cách trực quan.
 
-- Node.js `>=22.13.0`
-- Linux with `flock`, `curl`, and GNU `timeout`
+## Tính năng
 
-## Sites Lifecycle
+- Dòng thời gian gồm các giai đoạn và mốc mở rộng, thống nhất, chia cắt hoặc bị đô hộ.
+- Bản đồ 2D và 3D với nhiều mức độ nổi.
+- Ba mức chất lượng hiển thị: Low, Medium và High.
+- Hiển thị các quốc gia và vùng lãnh thổ lân cận theo bối cảnh từng thời kỳ.
+- Lớp tham chiếu 34 tỉnh, thành phố Việt Nam theo hệ thống hành chính năm 2025.
+- Hover và chọn tỉnh, thành phố để xem thông tin và lịch sử địa phương.
+- Danh sách đảo, quần đảo và khả năng định vị trực tiếp trên bản đồ.
+- Lớp sự kiện lịch sử với bộ lọc theo nhóm sự kiện.
+- Chế độ so sánh lãnh thổ giữa hai mốc thời gian.
+- Chế độ hành trình tự động và camera cinematic.
+- Tùy chọn ẩn toàn bộ giao diện để quan sát bản đồ toàn màn hình.
+- Giao diện responsive cho desktop, tablet và mobile.
 
-The Sites lifecycle CLI runs the locked dependency install before returning this checkout. Edit the source under `app/`, then checkpoint when a coherent milestone is ready to inspect or share. The remote Sites builder runs `npm run build` against the pushed commit. Do not repeat install or build as a normal pre-checkpoint step.
+## Công nghệ
 
-This starter does not use `wrangler.jsonc`.
+- Next.js 16
+- React 19
+- TypeScript
+- MapLibre GL JS
+- TopoJSON và World Atlas
+- Tailwind CSS 4
+- Lucide Icons
+- Vite và Vinext
 
-`install:ci` is intentionally a single, non-retrying `npm ci`. It refuses a concurrent install for the same project, consumes a matching image-seeded npm cache with `--prefer-offline` while retaining registry fallback for a missing cache object, otherwise downloads and verifies the complete vinext tarball recorded in `package-lock.json`, limits npm to one socket, and terminates a stalled install. `build` applies a short timeout and then validates the Sites artifact. These helpers target Linux and use GNU `timeout`; they are not native macOS scripts.
+## Cài đặt
 
-Scripts that need writable project-scoped home, npm, XDG, and temporary paths use `scripts/sites-env.sh`. The `dev` and `start` scripts honor the caller's runtime environment and keep Wrangler logs inside the checkout. The generated `.sites-runtime/` directory is disposable and ignored by Git.
+Yêu cầu Node.js `22.13.0` trở lên.
 
-## Included Shape
-
-- edit site code under `app/`
-- `app/chatgpt-auth.ts` provides optional dispatch-owned ChatGPT sign-in helpers
-- `.openai/hosting.json` declares optional Sites D1 and R2 bindings
-- `vite.config.ts` simulates declared bindings for local development
-- `db/index.ts` reads the D1 binding from the Cloudflare Worker environment
-- `db/schema.ts` starts intentionally empty
-- `examples/d1/` contains an optional D1 example surface
-- `drizzle.config.ts` supports local migration generation when needed
-
-## Workspace Auth Headers
-
-OpenAI workspace sites can read the current user's email from
-`oai-authenticated-user-email`.
-
-SIWC-authenticated workspace sites may also receive
-`oai-authenticated-user-full-name` when the user's SIWC profile has a non-empty
-`name` claim. The full-name value is percent-encoded UTF-8 and is accompanied by
-`oai-authenticated-user-full-name-encoding: percent-encoded-utf-8`.
-
-Treat the full name as optional and fall back to email when it is absent:
-
-```tsx
-import { headers } from "next/headers";
-
-export default async function Home() {
-  const requestHeaders = await headers();
-  const email = requestHeaders.get("oai-authenticated-user-email");
-  const encodedFullName = requestHeaders.get("oai-authenticated-user-full-name");
-  const fullName =
-    encodedFullName &&
-    requestHeaders.get("oai-authenticated-user-full-name-encoding") ===
-      "percent-encoded-utf-8"
-      ? decodeURIComponent(encodedFullName)
-      : null;
-
-  const displayName = fullName ?? email;
-  // ...
-}
+```bash
+npm install
+npm run dev
 ```
 
-## Optional Dispatch-Owned ChatGPT Sign-In
+Các lệnh chính:
 
-Import the ready-to-use helpers from `app/chatgpt-auth.ts` when the site needs
-optional or required ChatGPT sign-in:
+```bash
+npm run dev       # Chạy môi trường phát triển
+npm run build     # Build bản production
+npm run start     # Chạy bản production đã build
+npm run lint      # Kiểm tra chất lượng source
+npm test          # Build và chạy test
+```
 
-- Use `getChatGPTUser()` for optional signed-in UI.
-- Use `requireChatGPTUser(returnTo)` for server-rendered pages that should send
-  anonymous visitors through Sign in with ChatGPT.
-- Use `chatGPTSignInPath(returnTo)` and `chatGPTSignOutPath(returnTo)` for
-  browser links or actions.
-- Pass a same-origin relative `returnTo` path for the destination after sign-in
-  or sign-out. The helper validates and safely encodes it.
-- Mark protected pages with `export const dynamic = "force-dynamic"` because
-  they depend on per-request identity headers.
+## Cấu trúc chính
 
-Dispatch owns `/signin-with-chatgpt`, `/signout-with-chatgpt`, `/callback`, the
-OAuth cookies, and identity header injection. Do not implement app routes for
-those reserved paths. Routes that do not import and call the helper remain
-anonymous-compatible.
+```text
+app/
+  components/HistoricalAtlas.tsx   Giao diện và tương tác bản đồ
+  data/historical.ts                Dữ liệu thời kỳ, sự kiện và nguồn tham khảo
+  globals.css                       Design system và responsive layout
+public/data/
+  vietnam-historical-territories.geojson
+  vietnam-provinces-2025.geojson
+```
 
-SIWC establishes identity only; it does not prove workspace membership. Use the
-Sites hosting platform's access policy controls for workspace-wide restrictions,
-or enforce explicit server-side membership or allowlist checks.
+## Nguyên tắc dữ liệu
 
-Use SIWC for account pages, user-specific dashboards, saved records, and write
-actions tied to the current ChatGPT user. Leave public content anonymous.
+Ranh giới lịch sử trong dự án là lớp phục dựng mang tính minh họa. Nhiều thời kỳ không có đường biên chính xác theo cách hiểu hiện đại, vì vậy dữ liệu được trình bày theo ba mức kiểm soát:
 
-## Diagnostic Commands
+- Kiểm soát trực tiếp.
+- Tự trị hoặc phụ thuộc.
+- Vùng ảnh hưởng.
 
-- `npm run install:ci`: perform the one bounded lockfile install
-- `npm run dev`: start the Vite/Vinext development server
-- `npm run build`: build and validate the deployable Sites artifact
-- `npm run start`: start the built Vinext application
-- `npm test`: build, validate, and verify the rendered development-preview metadata
-- `npm run validate:artifact`: recheck an existing artifact's manifest and ESM `default.fetch` export
-- `npm run db:generate`: generate Drizzle migrations after schema changes
+Ranh giới ước lệ, lớp tỉnh thành năm 2025 và vị trí biển đảo hiện đại được đánh dấu riêng để tránh nhầm lẫn giữa dữ liệu lịch sử và địa giới hiện hành.
 
-Use build and validation commands for targeted diagnosis after a remote failure, not as part of the normal checkpoint path.
+## Nguồn tham khảo
 
-The timeout defaults can be overridden for a controlled canary with `SITES_INSTALL_TIMEOUT`, `SITES_INSTALL_KILL_AFTER`, `SITES_BUILD_TIMEOUT`, and `SITES_BUILD_KILL_AFTER`. A timeout fails the command; the helpers never retry an unchanged install or build.
+Dữ liệu khởi đầu được tổng hợp và đối chiếu từ:
 
-## Learn More
+- Bảo tàng Lịch sử Quốc gia.
+- Cổng Thông tin điện tử Chính phủ.
+- Cục Du lịch Quốc gia Việt Nam.
+- Nghị quyết số 202/2025/QH15 về sắp xếp đơn vị hành chính cấp tỉnh.
+- Bộ dữ liệu địa giới hành chính Việt Nam dạng GeoJSON.
+- Một số tài liệu lịch sử quốc tế được dẫn trực tiếp trong phần “Nguồn tư liệu” của ứng dụng.
 
-- [vinext Documentation](https://github.com/cloudflare/vinext)
-- [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+Khi bổ sung hoặc điều chỉnh một mốc lịch sử, cần ghi rõ nguồn, phạm vi lãnh thổ, mức độ chắc chắn và lý do thay đổi.
+
+## Lưu ý
+
+Dự án phục vụ mục đích khám phá và trực quan hóa lịch sử. Nội dung không thay thế bản đồ pháp lý, tài liệu hành chính hoặc nghiên cứu lịch sử chuyên ngành.
+
+## Giấy phép
+
+Chưa thiết lập giấy phép sử dụng. Mọi quyền thuộc về chủ sở hữu dự án.
