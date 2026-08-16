@@ -432,7 +432,7 @@ input:focus-visible {
 }
 
 .mobile-control-button {
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: center;
   width: 38px;
@@ -496,8 +496,42 @@ input:focus-visible {
 .atlas-shell.ui-hidden .territory-inspector,
 .atlas-shell.ui-hidden .province-history-panel,
 .atlas-shell.ui-hidden .timeline-panel,
-.atlas-shell.ui-hidden .modern-context-note {
+.atlas-shell.ui-hidden .modern-context-note,
+.atlas-shell.ui-hidden .panel-reopen {
   display: none !important;
+}
+
+.panel-reopen,
+.story-panel-close,
+.legend-close {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--line);
+  color: var(--paper-muted);
+  background: rgba(13, 20, 19, 0.86);
+  cursor: pointer;
+  line-height: 0;
+  backdrop-filter: blur(12px);
+}
+
+.panel-reopen {
+  position: absolute;
+  z-index: 12;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+}
+
+.story-reopen { top: 111px; left: 34px; }
+.legend-reopen { position: relative; flex: 0 0 auto; align-self: flex-end; pointer-events: auto; }
+
+.panel-reopen:hover,
+.story-panel-close:hover,
+.legend-close:hover {
+  border-color: rgba(215, 167, 90, 0.56);
+  color: var(--gold);
 }
 
 .compare-panel {
@@ -695,6 +729,41 @@ input:focus-visible {
   animation: card-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+.story-panel-close {
+  position: absolute;
+  z-index: 4;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+.panel-drag-handle {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.panel-drag-handle:active,
+.panel-is-dragging .panel-drag-handle { cursor: grabbing; }
+
+.panel-is-dragging,
+.panel-is-dragging * { user-select: none !important; }
+
+.story-drag-handle {
+  position: absolute;
+  z-index: 4;
+  top: 8px;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 24px;
+  color: rgba(236, 227, 204, 0.36);
+  transform: translateX(-50%);
+}
+
 @keyframes card-in {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
@@ -783,7 +852,7 @@ input:focus-visible {
 .story-index {
   position: absolute;
   top: 21px;
-  right: 25px;
+  right: 58px;
   color: rgba(236, 227, 204, 0.15);
   font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
   font-size: 44px;
@@ -937,6 +1006,15 @@ input:focus-visible {
   backdrop-filter: blur(16px);
   overflow-y: auto;
   pointer-events: auto;
+  display: none;
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.layer-panel.is-open {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .layer-panel-heading,
@@ -964,7 +1042,7 @@ input:focus-visible {
 }
 
 .layer-panel-heading button {
-  display: none;
+  display: grid;
   place-items: center;
   width: 32px;
   height: 32px;
@@ -1064,9 +1142,11 @@ input:focus-visible {
 .depth-preset-grid,
 .quality-preset-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 4px;
 }
+
+.depth-preset-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.quality-preset-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
 .depth-preset-grid button,
 .quality-preset-grid button {
@@ -1334,6 +1414,33 @@ input:focus-visible {
   background: rgba(13, 20, 19, 0.72);
   backdrop-filter: blur(12px);
   pointer-events: auto;
+}
+
+.legend-close {
+  position: absolute;
+  z-index: 2;
+  top: 7px;
+  right: 7px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+}
+
+.legend-drag-handle {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 22px;
+  color: rgba(236, 227, 204, 0.34);
+  transform: translateX(-50%);
+}
+
+.legend-card span:nth-of-type(2) {
+  padding-right: 24px;
 }
 
 .legend-card span {
@@ -2193,6 +2300,17 @@ input:focus-visible {
     width: 42px;
     height: 42px;
   }
+  .panel-drag-handle { cursor: default; touch-action: auto; }
+  .story-drag-handle,
+  .legend-drag-handle { display: none; }
+  .right-panel-stack {
+    position: static !important;
+    inset: auto !important;
+    display: block;
+    width: auto;
+    transform: none !important;
+  }
+  .story-reopen { top: 82px; left: 16px; }
   .ui-hide-button {
     width: 42px;
     height: 42px;
@@ -2208,18 +2326,21 @@ input:focus-visible {
     height: 38px;
   }
   .compare-panel {
-    top: 78px;
-    left: 18px;
-    width: calc(100vw - 36px);
+    top: 78px !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: 50% !important;
+    width: min(520px, calc(100vw - 72px));
+    max-width: 520px;
     min-width: 0;
-    transform: none;
+    transform: translateX(-50%) !important;
   }
   @keyframes compare-in {
-    from { opacity: 0; transform: translateY(-8px); }
-    to { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translate(-50%, -8px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
   }
   .atlas-shell.compare-active .story-card {
-    top: 257px;
+    top: 257px !important;
     max-height: calc(100dvh - 407px);
   }
   .atlas-shell.controls-open .story-card {
@@ -2228,9 +2349,13 @@ input:focus-visible {
     pointer-events: none;
   }
   .story-card {
-    top: 88px;
-    left: 18px;
-    width: min(355px, calc(100vw - 36px));
+    top: 88px !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: 16px !important;
+    transform: none !important;
+    width: min(350px, calc(100vw - 72px));
+    max-width: 350px;
     max-height: calc(100dvh - 238px);
     padding: 22px 22px 18px;
     overflow-y: auto;
@@ -2242,15 +2367,16 @@ input:focus-visible {
   .layer-panel {
     position: absolute;
     top: 78px;
-    right: 18px;
-    width: 230px;
+    right: 16px;
+    width: min(280px, calc(100vw - 72px));
+    max-width: 280px;
     max-height: min(58dvh, 440px);
     opacity: 0;
     pointer-events: none;
     transform: translateY(-8px);
     transition: 0.22s ease;
   }
-  .layer-panel.is-open { opacity: 1; pointer-events: auto; transform: translateY(0); }
+  .layer-panel.is-open { display: block; opacity: 1; pointer-events: auto; transform: translateY(0); }
   .layer-panel-heading button { display: grid; }
   .legend-card { display: none; }
   .province-card {
@@ -2260,9 +2386,13 @@ input:focus-visible {
   }
   .territory-inspector { bottom: 130px; }
   .province-history-panel {
-    top: 78px;
-    right: 18px;
-    width: calc(100vw - 36px);
+    top: 78px !important;
+    right: 16px !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform: none !important;
+    width: min(340px, calc(100vw - 72px));
+    max-width: 340px;
     max-height: calc(100dvh - 220px);
   }
   .province-history-list { max-height: calc(100dvh - 390px); }
@@ -2297,7 +2427,7 @@ input:focus-visible {
   }
   .comparison-result small { display: none; }
   .atlas-shell.compare-active .story-card {
-    top: 245px;
+    top: 245px !important;
     max-height: calc(100dvh - 385px);
   }
   .source-drawer { padding: 28px 22px; }
@@ -2341,8 +2471,3 @@ input:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
-  .right-panel-stack {
-    position: static;
-    display: block;
-    width: auto;
-  }

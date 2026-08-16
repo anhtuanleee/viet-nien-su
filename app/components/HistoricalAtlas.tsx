@@ -9,6 +9,7 @@ import {
   GitCompareArrows,
   History,
   Gauge,
+  GripHorizontal,
   Eye,
   EyeOff,
   Layers3,
@@ -28,6 +29,7 @@ import type {
   StyleSpecification,
 } from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { periods, sourceLinks, territoryData } from "../data/historical";
 
@@ -81,6 +83,9 @@ type IslandInfo = {
   region: string;
   coordinates: [number, number];
 };
+
+type PanelId = "story" | "compare" | "tools" | "province-history";
+type PanelPosition = { x: number; y: number };
 
 type HistoricalEventInfo = {
   id: string;
@@ -293,6 +298,15 @@ const defaultCompareIndex = Math.max(
 type EventFilter = "all" | "independence" | "expansion" | "division" | "occupation" | "modern";
 type DepthPreset = "standard" | "deep" | "cinematic";
 type RenderQuality = "low" | "medium" | "high";
+type QualityMode = "auto" | RenderQuality;
+
+type DeviceNavigator = Navigator & {
+  deviceMemory?: number;
+  connection?: EventTarget & {
+    effectiveType?: string;
+    saveData?: boolean;
+  };
+};
 
 const renderQualities: Array<{
   id: RenderQuality;
@@ -305,6 +319,37 @@ const renderQualities: Array<{
   { id: "medium", label: "Medium", note: "Cân bằng", maxPixelRatio: 1.5, effectScale: 0.78 },
   { id: "high", label: "High", note: "Sắc nét", maxPixelRatio: 2, effectScale: 1 },
 ];
+
+const detectDeviceRenderQuality = (): RenderQuality => {
+  if (typeof window === "undefined") return "medium";
+  const deviceNavigator = window.navigator as DeviceNavigator;
+  const cores = deviceNavigator.hardwareConcurrency || 0;
+  const memory = deviceNavigator.deviceMemory || 0;
+  const connection = deviceNavigator.connection;
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const pixelLoad = window.innerWidth * window.innerHeight * Math.min(window.devicePixelRatio || 1, 3) ** 2;
+  let score = 2;
+
+  if (cores >= 8) score += 2;
+  else if (cores >= 6) score += 1;
+  else if (cores && cores <= 2) score -= 2;
+  else if (cores && cores <= 4) score -= 1;
+
+  if (memory >= 8) score += 2;
+  else if (memory >= 6) score += 1;
+  else if (memory && memory <= 2) score -= 2;
+  else if (memory && memory <= 4) score -= 1;
+
+  if (window.innerWidth <= 900) score -= 1;
+  if ((window.devicePixelRatio || 1) >= 3 || pixelLoad > 7_000_000) score -= 1;
+  if (reducedMotion) score -= 1;
+  if (connection?.saveData) score -= 3;
+  if (connection?.effectiveType === "slow-2g" || connection?.effectiveType === "2g") score -= 2;
+
+  if (score <= 0) return "low";
+  if (score <= 3) return "medium";
+  return "high";
+};
 
 const depthPresets: Array<{
   id: DepthPreset;
@@ -380,7 +425,8 @@ export default function HistoricalAtlas() {
   const [terrainEnabled, setTerrainEnabled] = useState(true);
   const [sharp3dEnabled, setSharp3dEnabled] = useState(false);
   const [depthPreset, setDepthPreset] = useState<DepthPreset>("standard");
-  const [renderQuality, setRenderQuality] = useState<RenderQuality>("high");
+  const [qualityMode, setQualityMode] = useState<QualityMode>("auto");
+  const [renderQuality, setRenderQuality] = useState<RenderQuality>("medium");
   const [qualityPreferenceLoaded, setQualityPreferenceLoaded] = useState(false);
   const [cinematic3dEnabled, setCinematic3dEnabled] = useState(false);
   const [contextEnabled, setContextEnabled] = useState(true);
@@ -401,6 +447,68 @@ export default function HistoricalAtlas() {
   const [sourcesOpen, setSourcesOpen] = useState(false);
   const [controlsOpen, setControlsOpen] = useState(false);
   const [uiHidden, setUiHidden] = useState(false);
+  const [storyPanelOpen, setStoryPanelOpen] = useState(true);
+  const [legendOpen, setLegendOpen] = useState(true);
+  const [panelPositions, setPanelPositions] = useState<Partial<Record<PanelId, PanelPosition>>>(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      const stored = window.localStorage.getItem("dong-coi-viet-panel-positions");
+      return stored ? JSON.parse(stored) as Partial<Record<PanelId, PanelPosition>> : {};
+    } catch {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("dong-coi-viet-panel-positions", JSON.stringify(panelPositions));
+    } catch {
+      // Dragging still works for the current session without persistence.
+    }
+  }, [panelPositions]);
+
+  const draggablePanelStyle = (panelId: PanelId) => {
+    const position = panelPositions[panelId];
+    return position
+      ? { left: `${position.x}px`, top: `${position.y}px`, right: "auto", bottom: "auto", transform: "none" }
+      : undefined;
+  };
+
+  const beginPanelDrag = (
+    panelId: PanelId,
+    selector: string,
+    event: ReactPointerEvent<HTMLElement>,
+  ) => {
+    if (event.button !== 0 || window.matchMedia("(max-width: 900px)").matches) return;
+    if ((event.target as HTMLElement).closest("button, select, input, a")) return;
+    const panel = event.currentTarget.closest<HTMLElement>(selector);
+    if (!panel) return;
+
+    event.preventDefault();
+    const bounds = panel.getBoundingClientRect();
+    const offsetX = event.clientX - bounds.left;
+    const offsetY = event.clientY - bounds.top;
+    const move = (pointerEvent: PointerEvent) => {
+      const maxX = Math.max(12, window.innerWidth - bounds.width - 12);
+      const maxY = Math.max(78, window.innerHeight - bounds.height - 146);
+      setPanelPositions((current) => ({
+        ...current,
+        [panelId]: {
+          x: Math.min(maxX, Math.max(12, pointerEvent.clientX - offsetX)),
+          y: Math.min(maxY, Math.max(78, pointerEvent.clientY - offsetY)),
+        },
+      }));
+    };
+    const finish = () => {
+      document.removeEventListener("pointermove", move);
+      document.removeEventListener("pointerup", finish);
+      document.body.classList.remove("panel-is-dragging");
+    };
+
+    document.body.classList.add("panel-is-dragging");
+    document.addEventListener("pointermove", move);
+    document.addEventListener("pointerup", finish, { once: true });
+  };
 
   const activePeriod = periods[activeIndex];
   const comparePeriod = periods[compareIndex];
@@ -502,9 +610,11 @@ export default function HistoricalAtlas() {
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const savedQuality = window.localStorage.getItem("dong-coi-viet-render-quality");
-      if (savedQuality === "low" || savedQuality === "medium" || savedQuality === "high") {
-        setRenderQuality(savedQuality);
-      }
+      const savedMode: QualityMode = savedQuality === "low" || savedQuality === "medium" || savedQuality === "high"
+        ? savedQuality
+        : "auto";
+      setQualityMode(savedMode);
+      setRenderQuality(savedMode === "auto" ? detectDeviceRenderQuality() : savedMode);
       setQualityPreferenceLoaded(true);
     }, 0);
     return () => window.clearTimeout(timer);
@@ -512,8 +622,31 @@ export default function HistoricalAtlas() {
 
   useEffect(() => {
     if (!qualityPreferenceLoaded) return;
-    window.localStorage.setItem("dong-coi-viet-render-quality", renderQuality);
-  }, [qualityPreferenceLoaded, renderQuality]);
+    window.localStorage.setItem("dong-coi-viet-render-quality", qualityMode);
+  }, [qualityMode, qualityPreferenceLoaded]);
+
+  useEffect(() => {
+    if (!qualityPreferenceLoaded || qualityMode !== "auto") return;
+    const connection = (window.navigator as DeviceNavigator).connection;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let timer = 0;
+    const updateQuality = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => setRenderQuality(detectDeviceRenderQuality()), 180);
+    };
+
+    window.addEventListener("resize", updateQuality);
+    window.addEventListener("orientationchange", updateQuality);
+    connection?.addEventListener("change", updateQuality);
+    reducedMotion.addEventListener("change", updateQuality);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("resize", updateQuality);
+      window.removeEventListener("orientationchange", updateQuality);
+      connection?.removeEventListener("change", updateQuality);
+      reducedMotion.removeEventListener("change", updateQuality);
+    };
+  }, [qualityMode, qualityPreferenceLoaded]);
 
   useEffect(() => {
     const activeNode = timelineViewportRef.current?.querySelector('[data-active="true"]');
@@ -546,6 +679,11 @@ export default function HistoricalAtlas() {
     void import("maplibre-gl").then((maplibregl) => {
       if (cancelled || !containerRef.current) return;
 
+      const savedQuality = window.localStorage.getItem("dong-coi-viet-render-quality");
+      const initialQualityId: RenderQuality = savedQuality === "low" || savedQuality === "medium" || savedQuality === "high"
+        ? savedQuality
+        : detectDeviceRenderQuality();
+      const initialQuality = renderQualities.find((quality) => quality.id === initialQualityId) ?? renderQualities[1];
       let map: MapLibreMap;
       try {
         map = new maplibregl.Map({
@@ -560,7 +698,7 @@ export default function HistoricalAtlas() {
         maxPitch: 68,
         attributionControl: false,
         antialias: true,
-        pixelRatio: Math.min(window.devicePixelRatio || 1, renderQualities[2].maxPixelRatio),
+        pixelRatio: Math.min(window.devicePixelRatio || 1, initialQuality.maxPixelRatio),
         });
       } catch {
         setWebglUnavailable(true);
@@ -1723,27 +1861,26 @@ export default function HistoricalAtlas() {
           >
             <EyeOff size={18} />
           </button>
-          <button
-            className="icon-button mobile-control-button"
-            onClick={() => setControlsOpen((value) => {
-              const next = !value;
-              if (next) {
+          {!controlsOpen && (
+            <button
+              className="icon-button mobile-control-button"
+              onClick={() => {
+                setControlsOpen(true);
                 setCompareEnabled(false);
                 setProvinceHistoryOpen(false);
-              }
-              return next;
-            })}
-            aria-label="Mở tùy chọn lớp bản đồ"
-            aria-expanded={controlsOpen}
-          >
-            <Layers3 size={18} />
-          </button>
+              }}
+              aria-label="Mở tùy chọn lớp bản đồ"
+              aria-expanded={false}
+            >
+              <Layers3 size={18} />
+            </button>
+          )}
         </div>
       </header>
 
       {compareEnabled && (
-        <aside className="compare-panel" aria-label="So sánh hai thời đại">
-          <div className="compare-panel-heading">
+        <aside className="compare-panel" style={draggablePanelStyle("compare")} aria-label="So sánh hai thời đại">
+          <div className="compare-panel-heading panel-drag-handle" onPointerDown={(event) => beginPanelDrag("compare", ".compare-panel", event)}>
             <span><GitCompareArrows size={15} /> So sánh lãnh thổ</span>
             <button onClick={() => setCompareEnabled(false)} aria-label="Đóng chế độ so sánh"><X size={16} /></button>
           </div>
@@ -1773,7 +1910,17 @@ export default function HistoricalAtlas() {
         </aside>
       )}
 
-      <aside className="story-card" aria-live="polite">
+      {!storyPanelOpen && (
+        <button className="panel-reopen story-reopen" onClick={() => setStoryPanelOpen(true)} aria-label="Mở thông tin thời kỳ" title="Mở thông tin thời kỳ">
+          <BookOpen size={17} />
+        </button>
+      )}
+
+      {storyPanelOpen && <aside className="story-card" style={draggablePanelStyle("story")} aria-live="polite">
+        <div className="story-drag-handle panel-drag-handle" onPointerDown={(event) => beginPanelDrag("story", ".story-card", event)} title="Kéo để di chuyển panel">
+          <GripHorizontal size={17} />
+        </div>
+        <button className="story-panel-close" onClick={() => setStoryPanelOpen(false)} aria-label="Đóng thông tin thời kỳ"><X size={16} /></button>
         {storyModeEnabled && <div className="story-tour-progress" style={{ width: `${((activeIndex + 1) / periods.length) * 100}%` }} />}
         <div className="story-index">{String(activeIndex + 1).padStart(2, "0")}</div>
         <p className="story-eyebrow">{activePeriod.eyebrow}</p>
@@ -1804,26 +1951,39 @@ export default function HistoricalAtlas() {
           <CircleHelp size={15} />
           <span>{activePeriod.sourceNote}</span>
         </button>
-      </aside>
+      </aside>}
 
-      <div className="right-panel-stack">
+      <div className="right-panel-stack" style={draggablePanelStyle("tools")}>
       <aside className={`layer-panel ${controlsOpen ? "is-open" : ""}`}>
-        <div className="layer-panel-heading">
+        <div className="layer-panel-heading panel-drag-handle" onPointerDown={(event) => beginPanelDrag("tools", ".right-panel-stack", event)}>
           <span><Layers3 size={15} /> Lớp hiển thị</span>
           <button onClick={() => setControlsOpen(false)} aria-label="Đóng tùy chọn"><X size={16} /></button>
         </div>
         <div className="quality-control">
           <div className="depth-control-heading">
             <span><Gauge size={14} /> Chất lượng render</span>
-            <small>{activeRenderQuality.note}</small>
+            <small>{qualityMode === "auto" ? `Auto · ${activeRenderQuality.label}` : activeRenderQuality.note}</small>
           </div>
           <div className="quality-preset-grid" role="group" aria-label="Chọn chất lượng hiển thị bản đồ">
+            <button
+              className={qualityMode === "auto" ? "is-active" : ""}
+              aria-pressed={qualityMode === "auto"}
+              onClick={() => {
+                setQualityMode("auto");
+                setRenderQuality(detectDeviceRenderQuality());
+              }}
+            >
+              Auto
+            </button>
             {renderQualities.map((quality) => (
               <button
                 key={quality.id}
-                className={renderQuality === quality.id ? "is-active" : ""}
-                aria-pressed={renderQuality === quality.id}
-                onClick={() => setRenderQuality(quality.id)}
+                className={qualityMode === quality.id ? "is-active" : ""}
+                aria-pressed={qualityMode === quality.id}
+                onClick={() => {
+                  setQualityMode(quality.id);
+                  setRenderQuality(quality.id);
+                }}
               >
                 {quality.label}
               </button>
@@ -2012,7 +2172,11 @@ export default function HistoricalAtlas() {
         <button className="reset-view" onClick={resetView}><RotateCcw size={14} /> Đặt lại góc nhìn</button>
       </aside>
 
-      <aside className="legend-card">
+      {legendOpen ? <aside className="legend-card">
+        <div className="legend-drag-handle panel-drag-handle" onPointerDown={(event) => beginPanelDrag("tools", ".right-panel-stack", event)} title="Kéo để di chuyển panel">
+          <GripHorizontal size={15} />
+        </div>
+        <button className="legend-close" onClick={() => setLegendOpen(false)} aria-label="Đóng chú giải"><X size={14} /></button>
         <span><i className="legend-direct" /> Kiểm soát trực tiếp</span>
         <span><i className="legend-autonomous" /> Tự trị / phụ thuộc</span>
         <span><i className="legend-influence" /> Ảnh hưởng</span>
@@ -2020,7 +2184,11 @@ export default function HistoricalAtlas() {
         <span><i className="legend-province" /> Tỉnh/thành 2025</span>
         <span><i className="legend-island" /> Đảo / quần đảo</span>
         <span><i className="legend-event" /> Sự kiện lịch sử</span>
-      </aside>
+      </aside> : (
+        <button className="panel-reopen legend-reopen" onClick={() => setLegendOpen(true)} aria-label="Mở chú giải" title="Mở chú giải">
+          <CircleHelp size={17} />
+        </button>
+      )}
       </div>
 
       {historicalEventsEnabled && visibleHistoricalEvent && (
@@ -2088,8 +2256,8 @@ export default function HistoricalAtlas() {
       )}
 
       {selectedProvince && provinceHistoryOpen && (
-        <aside className="province-history-panel" aria-label={`Lịch sử địa phương ${selectedProvince.name}`}>
-          <div className="province-history-heading">
+        <aside className="province-history-panel" style={draggablePanelStyle("province-history")} aria-label={`Lịch sử địa phương ${selectedProvince.name}`}>
+          <div className="province-history-heading panel-drag-handle" onPointerDown={(event) => beginPanelDrag("province-history", ".province-history-panel", event)}>
             <div>
               <span>Lịch sử địa phương</span>
               <h3>{selectedProvince.fullName}</h3>
