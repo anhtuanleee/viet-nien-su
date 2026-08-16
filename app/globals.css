@@ -525,7 +525,13 @@ input:focus-visible {
 }
 
 .story-reopen { top: 111px; left: 34px; }
-.legend-reopen { position: relative; flex: 0 0 auto; align-self: flex-end; pointer-events: auto; }
+.legend-reopen {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  flex: 0 0 auto;
+  pointer-events: auto;
+}
 
 .panel-reopen:hover,
 .story-panel-close:hover,
@@ -2403,7 +2409,19 @@ input:focus-visible {
   .layer-panel-core { max-height: none; }
   .layer-panel-information { max-height: min(34dvh, 300px); }
   .layer-panel-heading button { display: grid; }
-  .legend-card { display: none; }
+  .legend-card {
+    position: absolute;
+    z-index: 13;
+    right: 16px;
+    bottom: 184px;
+    display: grid;
+    width: min(300px, calc(100vw - 48px));
+  }
+  .legend-reopen {
+    position: absolute;
+    right: 16px;
+    bottom: 140px;
+  }
   .province-card {
     right: 18px;
     bottom: 130px;

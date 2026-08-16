@@ -443,7 +443,7 @@ export default function HistoricalAtlas() {
   const [controlsOpen, setControlsOpen] = useState(false);
   const [uiHidden, setUiHidden] = useState(false);
   const [storyPanelOpen, setStoryPanelOpen] = useState(true);
-  const [legendOpen, setLegendOpen] = useState(true);
+  const [legendOpen, setLegendOpen] = useState(false);
 
   const activePeriod = periods[activeIndex];
   const comparePeriod = periods[compareIndex];
