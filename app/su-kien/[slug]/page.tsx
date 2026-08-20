@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, CalendarDays, CheckCircle2, ExternalLink, MapPin, ShieldCheck, UsersRound } from "lucide-react";
 import { eventDetails, getEventDetail } from "../../data/events";
+import BrandMark from "../../components/BrandMark";
+import SiteFooter from "../../components/SiteFooter";
 
 type EventPageProps = { params: Promise<{ slug: string }> };
 
@@ -42,16 +44,16 @@ export default async function EventDetailPage({ params }: EventPageProps) {
     dateModified: "2026-08-16",
     inLanguage: "vi-VN",
     image: event.media.src,
-    author: { "@type": "Organization", name: "Dòng Cõi Việt" },
+    author: { "@type": "Organization", name: "Việt Niên Sử" },
   };
 
   return (
     <main className="event-detail-page">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
       <header className="event-site-header event-detail-header">
-        <a className="event-brand" href="/" aria-label="Trở về bản đồ Dòng Cõi Việt">
-          <span>ĐV</span>
-          <div><strong>Dòng Cõi Việt</strong><small>Hồ sơ sự kiện</small></div>
+        <a className="event-brand" href="/" aria-label="Trở về bản đồ Việt Niên Sử">
+          <BrandMark />
+          <div><strong>Việt Niên Sử</strong><small>Hồ sơ sự kiện</small></div>
         </a>
         <nav aria-label="Điều hướng hồ sơ">
           <a href="/su-kien">Tất cả sự kiện</a>
@@ -73,7 +75,8 @@ export default async function EventDetailPage({ params }: EventPageProps) {
             </div>
           </div>
           <figure className="event-hero-media">
-            {/* Ảnh tư liệu từ Wikimedia được tải trực tiếp để giữ nguyên URL nguồn và giấy phép. */}
+            {event.media.kind === "generated" && <span className="event-media-kind">Minh họa AI · không phải ảnh tư liệu</span>}
+            {/* Ảnh giữ nguyên URL nguồn hoặc dùng minh họa nhận diện thuộc dự án. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={event.media.src} alt={event.media.alt} referrerPolicy="no-referrer" />
             <figcaption>
@@ -195,6 +198,7 @@ export default async function EventDetailPage({ params }: EventPageProps) {
           {nextEvent ? <a href={`/su-kien/${nextEvent.slug}`}><small>Hồ sơ sau</small><strong>{nextEvent.name} {nextEvent.yearLabel} <ArrowRight size={16} /></strong></a> : <a href="/su-kien"><small>Tiếp tục khám phá</small><strong>Tất cả sự kiện <ArrowRight size={16} /></strong></a>}
         </nav>
       </article>
+      <SiteFooter />
     </main>
   );
 }

@@ -34,6 +34,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { historicalEvents } from "../data/events";
 import type { HistoricalEventSummary as HistoricalEventInfo } from "../data/events";
 import { periods, sourceLinks, territoryData } from "../data/historical";
+import BrandMark from "./BrandMark";
 
 const historicalContextLabels = (year: number) => {
   const sea = { name: "BIỂN ĐÔNG", coordinates: [112.0, 15.2] as [number, number] };
@@ -1706,7 +1707,7 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
                   }}
                 >
                   <circle cx={x} cy={y} r={isSelected ? 10 : isHovered ? 9 : 6} />
-                  {(isHovered || isSelected) && <text x={x + 13} y={y - 9}>{historicalEvent.name}</text>}
+                  {(isHovered || isSelected) && <text x={x + 13} y={y - 9}>{historicalEvent.name} · {historicalEvent.yearLabel}</text>}
                 </g>
               );
             })}
@@ -1742,16 +1743,16 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
       )}
 
       <header className="atlas-header">
-        <a className="brand" href="#top" aria-label="Dòng Cõi Việt — trang chính">
-          <span className="brand-seal">ĐV</span>
+        <a className="brand" href="#top" aria-label="Việt Niên Sử — trang chính">
+          <BrandMark className="brand-seal" />
           <span>
-            <strong>Dòng Cõi Việt</strong>
+            <strong>Việt Niên Sử</strong>
             <small>Bản đồ lịch sử tương tác</small>
           </span>
         </a>
 
         <div className="header-actions">
-          <span className="prototype-label"><i /> Phục dựng thử nghiệm 01</span>
+          <a className="prototype-label ownership-label" href="/phap-ly"><i /> Venn · MIT · v0.1.0</a>
           <button
             className={`text-button story-trigger ${storyModeEnabled ? "is-active" : ""}`}
             onClick={toggleStoryMode}
@@ -2082,7 +2083,7 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
                 onClick={() => selectHistoricalEvent(historicalEvent)}
               >
                 <span>{historicalEvent.year}</span>
-                <div><strong>{historicalEvent.name}</strong><small>{historicalEvent.location}</small></div>
+                <div><strong>{historicalEvent.name} {historicalEvent.yearLabel}</strong><small>{historicalEvent.location}</small></div>
               </button>
             ))}
           </div>
@@ -2135,7 +2136,7 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
         <aside className={`province-card historical-event-card ${selectedHistoricalEvent ? "is-selected" : ""}`} aria-live="polite">
           <div>
             <span>{selectedHistoricalEvent ? "Sự kiện đã chọn" : "Sự kiện đang trỏ"} · {visibleHistoricalEvent.year}</span>
-            <strong>{visibleHistoricalEvent.name}</strong>
+            <strong>{visibleHistoricalEvent.name} {visibleHistoricalEvent.yearLabel}</strong>
             <small>{visibleHistoricalEvent.location}</small>
             <p>{visibleHistoricalEvent.summary}</p>
             {visibleHistoricalEvent.hasDetail && (

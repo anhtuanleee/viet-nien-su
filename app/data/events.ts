@@ -1,3 +1,5 @@
+import { buildResearchedEventDetails } from "./researched-events";
+
 export type HistoricalEventSummary = {
   id: string;
   slug: string;
@@ -31,6 +33,7 @@ export type EventMedia = {
   caption: string;
   credit: string;
   license: string;
+  kind?: "source" | "generated";
   licenseUrl?: string;
   sourceUrl: string;
 };
@@ -51,7 +54,7 @@ export type HistoricalEventDetail = HistoricalEventSummary & {
   sources: EventSource[];
 };
 
-export const historicalEvents: HistoricalEventSummary[] = [
+const historicalEventSeeds: HistoricalEventSummary[] = [
   {
     id: "bach-dang-938",
     slug: "bach-dang-938",
@@ -143,9 +146,235 @@ export const historicalEvents: HistoricalEventSummary[] = [
     category: "Chiến dịch",
     hasDetail: true,
   },
+  {
+    id: "bach-dang-981",
+    slug: "bach-dang-981",
+    name: "Bạch Đằng",
+    year: 981,
+    yearLabel: "981",
+    periodId: "dai-co-viet",
+    location: "Vùng sông Bạch Đằng",
+    summary: "Một hướng giao chiến quan trọng trong cuộc kháng chiến chống Tống thời Tiền Lê.",
+    coordinates: [106.79, 20.92],
+    category: "Thủy chiến",
+    hasDetail: false,
+  },
+  {
+    id: "ung-chau-1075",
+    slug: "ung-chau-1075",
+    name: "Chiến dịch Ung Châu",
+    year: 1075,
+    yearLabel: "1075–1076",
+    periodId: "dai-viet-1069",
+    location: "Ung Châu, Quảng Tây",
+    summary: "Cuộc tiến công chủ động của quân Đại Việt trước cuộc chiến Tống – Việt.",
+    coordinates: [108.32, 22.82],
+    category: "Chiến dịch",
+    hasDetail: false,
+  },
+  {
+    id: "dong-bo-dau-1258",
+    slug: "dong-bo-dau-1258",
+    name: "Đông Bộ Đầu",
+    year: 1258,
+    yearLabel: "1258",
+    periodId: "dai-viet-1306",
+    location: "Khu vực Thăng Long",
+    summary: "Cuộc phản công trong kháng chiến chống Nguyên – Mông lần thứ nhất.",
+    coordinates: [105.86, 21.03],
+    category: "Chuỗi trận",
+    hasDetail: false,
+  },
+  {
+    id: "chuong-duong-ham-tu-1285",
+    slug: "chuong-duong-ham-tu-1285",
+    name: "Chương Dương – Hàm Tử",
+    year: 1285,
+    yearLabel: "1285",
+    periodId: "dai-viet-1306",
+    location: "Dọc sông Hồng",
+    summary: "Hai trận đánh gắn với cuộc phản công của nhà Trần trong kháng chiến lần thứ hai.",
+    coordinates: [105.94, 20.84],
+    category: "Chuỗi trận",
+    hasDetail: false,
+  },
+  {
+    id: "tot-dong-chuc-dong-1426",
+    slug: "tot-dong-chuc-dong-1426",
+    name: "Tốt Động – Chúc Động",
+    year: 1426,
+    yearLabel: "1426",
+    periodId: "minh-thuoc",
+    location: "Chương Mỹ, Hà Nội",
+    summary: "Trận đánh lớn của nghĩa quân Lam Sơn trước giai đoạn vây Đông Quan.",
+    coordinates: [105.64, 20.92],
+    category: "Chuỗi trận",
+    hasDetail: false,
+  },
+  {
+    id: "tra-ban-1471",
+    slug: "tra-ban-1471",
+    name: "Trà Bàn",
+    year: 1471,
+    yearLabel: "1471",
+    periodId: "le-thanh-tong-1471",
+    location: "Bình Định",
+    summary: "Trận đánh quyết định trong chiến dịch của Đại Việt tại kinh đô Vijaya của Champa.",
+    coordinates: [109.06, 13.94],
+    category: "Chiến dịch",
+    hasDetail: false,
+  },
+  {
+    id: "nhat-le-1648",
+    slug: "nhat-le-1648",
+    name: "Nhật Lệ",
+    year: 1648,
+    yearLabel: "1648",
+    periodId: "dang-trong-ngoai",
+    location: "Quảng Bình",
+    summary: "Một trận đánh tiêu biểu trong chuỗi xung đột Trịnh – Nguyễn thế kỷ XVII.",
+    coordinates: [106.62, 17.47],
+    category: "Phòng tuyến",
+    hasDetail: false,
+  },
+  {
+    id: "thi-nai-1801",
+    slug: "thi-nai-1801",
+    name: "Thị Nại",
+    year: 1801,
+    yearLabel: "1801",
+    periodId: "tay-son",
+    location: "Đầm Thị Nại, Bình Định",
+    summary: "Trận thủy chiến lớn ở giai đoạn cuối cuộc chiến Tây Sơn – Nguyễn.",
+    coordinates: [109.24, 13.81],
+    category: "Thủy chiến",
+    hasDetail: false,
+  },
+  {
+    id: "da-nang-1858",
+    slug: "da-nang-1858",
+    name: "Mặt trận Đà Nẵng",
+    year: 1858,
+    yearLabel: "1858–1860",
+    periodId: "dai-nam-1835",
+    location: "Đà Nẵng",
+    summary: "Mặt trận mở đầu cuộc chiến Pháp – Việt giữa thế kỷ XIX.",
+    coordinates: [108.21, 16.08],
+    category: "Phòng tuyến",
+    hasDetail: false,
+  },
+  {
+    id: "cau-giay-1873",
+    slug: "cau-giay-1873",
+    name: "Cầu Giấy lần thứ nhất",
+    year: 1873,
+    yearLabel: "1873",
+    periodId: "phap-thuoc-1887",
+    location: "Cầu Giấy, Hà Nội",
+    summary: "Trận đánh diễn ra trong cuộc đối đầu quanh thành Hà Nội năm 1873.",
+    coordinates: [105.80, 21.03],
+    category: "Chuỗi trận",
+    hasDetail: false,
+  },
+  {
+    id: "ba-dinh-1886",
+    slug: "ba-dinh-1886-1887",
+    name: "Căn cứ Ba Đình",
+    year: 1886,
+    yearLabel: "1886–1887",
+    periodId: "phap-thuoc-1887",
+    location: "Nga Sơn, Thanh Hóa",
+    summary: "Cuộc chiến đấu phòng thủ tiêu biểu trong phong trào Cần Vương.",
+    coordinates: [105.96, 20.02],
+    category: "Phòng tuyến",
+    hasDetail: false,
+  },
+  {
+    id: "viet-bac-1947",
+    slug: "viet-bac-thu-dong-1947",
+    name: "Việt Bắc Thu – Đông",
+    year: 1947,
+    yearLabel: "1947",
+    periodId: "doc-lap-1945",
+    location: "Khu vực Việt Bắc",
+    summary: "Chiến dịch phòng thủ trên nhiều hướng tại căn cứ địa Việt Bắc.",
+    coordinates: [105.84, 22.14],
+    category: "Chiến dịch",
+    hasDetail: false,
+  },
+  {
+    id: "bien-gioi-1950",
+    slug: "bien-gioi-1950",
+    name: "Chiến dịch Biên giới",
+    year: 1950,
+    yearLabel: "1950",
+    periodId: "doc-lap-1945",
+    location: "Cao Bằng – Lạng Sơn",
+    summary: "Chiến dịch lớn trên tuyến biên giới Việt – Trung trong kháng chiến chống Pháp.",
+    coordinates: [106.32, 22.67],
+    category: "Chiến dịch",
+    hasDetail: false,
+  },
+  {
+    id: "khe-sanh-1968",
+    slug: "khe-sanh-1968",
+    name: "Khe Sanh",
+    year: 1968,
+    yearLabel: "1968",
+    periodId: "chia-cat-1954",
+    location: "Hướng Hóa, Quảng Trị",
+    summary: "Chuỗi giao tranh lớn quanh căn cứ Khe Sanh trong năm 1968.",
+    coordinates: [106.73, 16.63],
+    category: "Chiến dịch",
+    hasDetail: false,
+  },
+  {
+    id: "duong-9-nam-lao-1971",
+    slug: "duong-9-nam-lao-1971",
+    name: "Đường 9 – Nam Lào",
+    year: 1971,
+    yearLabel: "1971",
+    periodId: "chia-cat-1954",
+    location: "Quảng Trị – Hạ Lào",
+    summary: "Chiến dịch diễn ra dọc Đường 9 và khu vực Nam Lào đầu năm 1971.",
+    coordinates: [106.62, 16.69],
+    category: "Chiến dịch",
+    hasDetail: false,
+  },
+  {
+    id: "xuan-loc-1975",
+    slug: "xuan-loc-1975",
+    name: "Xuân Lộc",
+    year: 1975,
+    yearLabel: "1975",
+    periodId: "chia-cat-1954",
+    location: "Đồng Nai",
+    summary: "Trận đánh lớn trên hướng đông trước Chiến dịch Hồ Chí Minh.",
+    coordinates: [107.19, 10.93],
+    category: "Chuỗi trận",
+    hasDetail: false,
+  },
+  {
+    id: "ho-chi-minh-1975",
+    slug: "chien-dich-ho-chi-minh-1975",
+    name: "Chiến dịch Hồ Chí Minh",
+    year: 1975,
+    yearLabel: "04/1975",
+    periodId: "chia-cat-1954",
+    location: "Sài Gòn – Gia Định",
+    summary: "Chiến dịch cuối cùng của cuộc Tổng tiến công và nổi dậy mùa Xuân 1975.",
+    coordinates: [106.70, 10.78],
+    category: "Chiến dịch",
+    hasDetail: false,
+  },
 ];
 
-export const eventDetails: HistoricalEventDetail[] = [
+export const historicalEvents: HistoricalEventSummary[] = historicalEventSeeds.map((event) => ({
+  ...event,
+  hasDetail: true,
+}));
+
+const featuredEventDetails: HistoricalEventDetail[] = [
   {
     ...historicalEvents[0],
     dateLabel: "Cuối năm 938",
@@ -296,7 +525,11 @@ export const eventDetails: HistoricalEventDetail[] = [
   },
 ];
 
+export const eventDetails: HistoricalEventDetail[] = [
+  ...featuredEventDetails,
+  ...buildResearchedEventDetails(historicalEvents),
+].sort((left, right) => left.year - right.year);
+
 export const publishedEventDetails = eventDetails;
 
 export const getEventDetail = (slug: string) => eventDetails.find((event) => event.slug === slug);
-

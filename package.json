@@ -1,5 +1,5 @@
 {
-  "name": "dong-coi-viet",
+  "name": "viet-nien-su",
   "version": "0.1.0",
   "private": true,
   "engines": {
@@ -45,5 +45,5 @@
     "wrangler": "4.92.0"
   },
   "type": "module",
-  "displayName": "Dòng Cõi Việt"
+  "displayName": "Vi\u1ec7t Ni\u00ean S\u1eed"
 }

@@ -422,6 +422,14 @@ export const territoryData = {
 
 export const sourceLinks = [
   {
+    label: "Bảo tàng Lịch sử Quốc gia — Việt Nam từ thế kỷ I đến thế kỷ X",
+    href: "https://baotanglichsu.vn/en/Articles/4196/vietnam-from-the-1st-to-the-10th-centuries-ad",
+  },
+  {
+    label: "Bộ Quốc phòng — các chiến dịch tiêu biểu trong đấu tranh giải phóng dân tộc",
+    href: "https://btllang.mod.gov.vn/tin-tuc/tin-tong-hop/15665-quan-doi-nhan-dan-viet-nam-voi-su-nghiep-dau-tranh-giai-phong-dan-toc.html",
+  },
+  {
     label: "Bảo tàng Lịch sử Quốc gia — thời đại Hùng Vương",
     href: "https://baotanglichsu.vn/vi/Articles/3091/71651/nghien-cuu-phuc-dung-no-lien-chau-thoi-an-duong-vuong-lam-ro-hon-tinh-lich-su-cua-thoi-djai-hung-vuong.html",
   },

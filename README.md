@@ -1,6 +1,6 @@
-# Dòng Cõi Việt
+# Việt Niên Sử
 
-Dòng Cõi Việt là bản đồ lịch sử tương tác giúp khám phá sự thay đổi lãnh thổ Việt Nam qua nhiều thời kỳ, từ Văn Lang đến Việt Nam hiện đại.
+Việt Niên Sử là bản đồ lịch sử tương tác giúp khám phá sự thay đổi lãnh thổ Việt Nam qua nhiều thời kỳ, từ Văn Lang đến Việt Nam hiện đại.
 
 Ứng dụng kết hợp dòng thời gian, bản đồ 3D, lớp tỉnh thành hiện đại, địa danh biển đảo và các sự kiện tiêu biểu để người xem đối chiếu không gian lịch sử theo cách trực quan.
 
