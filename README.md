@@ -46,6 +46,7 @@ npm run dev       # Chạy môi trường phát triển
 npm run build     # Build bản production
 npm run start     # Chạy bản production đã build
 npm run lint      # Kiểm tra chất lượng source
+npm run audit:publication # Kiểm tra nhãn AI, pháp lý và lớp bản đồ trước khi công bố
 npm test          # Build và chạy test
 ```
 
@@ -90,4 +91,6 @@ Dự án phục vụ mục đích khám phá và trực quan hóa lịch sử. N
 
 ## Giấy phép
 
-Chưa thiết lập giấy phép sử dụng. Mọi quyền thuộc về chủ sở hữu dự án.
+Copyright © 2026 Venn. Mã nguồn và dữ liệu gốc mà Venn có quyền cấp phép được phát hành theo [MIT License](LICENSE).
+
+Tài sản bên thứ ba giữ nguyên giấy phép gốc và không tự động thuộc MIT. Xem [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) trước khi tái sử dụng ảnh, dữ liệu địa lý hoặc tài liệu ngoài dự án. Quy trình đăng mạng xã hội nằm trong [SOCIAL_PUBLISHING_CHECKLIST.md](SOCIAL_PUBLISHING_CHECKLIST.md).

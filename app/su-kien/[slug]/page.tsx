@@ -25,6 +25,12 @@ export async function generateMetadata({ params }: EventPageProps): Promise<Meta
       images: [{ url: event.media.src, alt: event.media.alt }],
       type: "article",
     },
+    twitter: {
+      card: "summary_large_image",
+      title: `${event.name} ${event.yearLabel}`,
+      description: event.dek,
+      images: [event.media.src],
+    },
   };
 }
 
@@ -73,6 +79,9 @@ export default async function EventDetailPage({ params }: EventPageProps) {
               <span><CalendarDays size={15} /><small>Thời gian</small><strong>{event.dateLabel}</strong></span>
               <span><ShieldCheck size={15} /><small>Đối chiếu</small><strong>{event.sources.length} nguồn chính</strong></span>
             </div>
+            <p className="event-coordinate-note">
+              <MapPin size={14} /> Tọa độ bản đồ: {event.coordinates[1].toFixed(3)}°N, {event.coordinates[0].toFixed(3)}°E · {event.coordinateNote}
+            </p>
           </div>
           <figure className="event-hero-media">
             {event.media.kind === "generated" && <span className="event-media-kind">Minh họa AI · không phải ảnh tư liệu</span>}
@@ -182,7 +191,7 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                   {event.sources.map((source, index) => (
                     <a href={source.url} target="_blank" rel="noreferrer" key={source.url}>
                       <span>{String(index + 1).padStart(2, "0")}</span>
-                      <div><small>{source.publisher}</small><strong>{source.title}</strong><p>{source.note}</p></div>
+                      <div><small>{source.level ?? "Nguồn tham khảo"} · {source.publisher}</small><strong>{source.title}</strong><p>{source.note}</p></div>
                       <ArrowUpRight size={17} />
                     </a>
                   ))}

@@ -10,6 +10,8 @@ export type HistoricalEventSummary = {
   location: string;
   summary: string;
   coordinates: [number, number];
+  coordinatePrecision: "site" | "area" | "representative";
+  coordinateNote: string;
   category: "Thủy chiến" | "Chiến dịch" | "Phòng tuyến" | "Chuỗi trận";
   hasDetail: boolean;
 };
@@ -25,6 +27,7 @@ export type EventSource = {
   publisher: string;
   url: string;
   note: string;
+  level?: "Nguồn chính thức" | "Nghiên cứu chuyên môn" | "Nguồn tham khảo";
 };
 
 export type EventMedia = {
@@ -54,7 +57,7 @@ export type HistoricalEventDetail = HistoricalEventSummary & {
   sources: EventSource[];
 };
 
-const historicalEventSeeds: HistoricalEventSummary[] = [
+const historicalEventSeeds: Array<Omit<HistoricalEventSummary, "coordinatePrecision" | "coordinateNote">> = [
   {
     id: "bach-dang-938",
     slug: "bach-dang-938",
@@ -64,7 +67,7 @@ const historicalEventSeeds: HistoricalEventSummary[] = [
     periodId: "ngo-quyen",
     location: "Cửa sông Bạch Đằng",
     summary: "Chiến thắng mở đầu thời kỳ độc lập tự chủ lâu dài.",
-    coordinates: [106.78, 20.91],
+    coordinates: [106.758, 20.953],
     category: "Thủy chiến",
     hasDetail: true,
   },
@@ -90,7 +93,7 @@ const historicalEventSeeds: HistoricalEventSummary[] = [
     periodId: "dai-viet-1306",
     location: "Vùng Tràng Kênh – Bạch Đằng",
     summary: "Trận thủy chiến tiêu biểu trong cuộc kháng chiến chống Nguyên lần thứ ba.",
-    coordinates: [106.79, 20.92],
+    coordinates: [106.758, 20.953],
     category: "Thủy chiến",
     hasDetail: true,
   },
@@ -103,7 +106,7 @@ const historicalEventSeeds: HistoricalEventSummary[] = [
     periodId: "hau-le-1428",
     location: "Lạng Sơn – Bắc Giang",
     summary: "Chuỗi trận quyết định ở giai đoạn cuối khởi nghĩa Lam Sơn.",
-    coordinates: [106.45, 21.55],
+    coordinates: [106.58, 21.68],
     category: "Chuỗi trận",
     hasDetail: false,
   },
@@ -116,7 +119,7 @@ const historicalEventSeeds: HistoricalEventSummary[] = [
     periodId: "tay-son",
     location: "Sông Tiền",
     summary: "Trận thủy chiến tiêu biểu do Nguyễn Huệ chỉ huy.",
-    coordinates: [106.26, 10.34],
+    coordinates: [106.248, 10.325],
     category: "Thủy chiến",
     hasDetail: false,
   },
@@ -129,7 +132,7 @@ const historicalEventSeeds: HistoricalEventSummary[] = [
     periodId: "tay-son",
     location: "Thăng Long",
     summary: "Chiến thắng đầu xuân Kỷ Dậu dưới thời Quang Trung.",
-    coordinates: [105.84, 20.99],
+    coordinates: [105.846, 20.952],
     category: "Chuỗi trận",
     hasDetail: false,
   },
@@ -155,7 +158,7 @@ const historicalEventSeeds: HistoricalEventSummary[] = [
     periodId: "dai-co-viet",
     location: "Vùng sông Bạch Đằng",
     summary: "Một hướng giao chiến quan trọng trong cuộc kháng chiến chống Tống thời Tiền Lê.",
-    coordinates: [106.79, 20.92],
+    coordinates: [106.758, 20.953],
     category: "Thủy chiến",
     hasDetail: false,
   },
@@ -259,7 +262,7 @@ const historicalEventSeeds: HistoricalEventSummary[] = [
     periodId: "dai-nam-1835",
     location: "Đà Nẵng",
     summary: "Mặt trận mở đầu cuộc chiến Pháp – Việt giữa thế kỷ XIX.",
-    coordinates: [108.21, 16.08],
+    coordinates: [108.217, 16.074],
     category: "Phòng tuyến",
     hasDetail: false,
   },
@@ -309,9 +312,9 @@ const historicalEventSeeds: HistoricalEventSummary[] = [
     year: 1950,
     yearLabel: "1950",
     periodId: "doc-lap-1945",
-    location: "Cao Bằng – Lạng Sơn",
+    location: "Đông Khê, Cao Bằng",
     summary: "Chiến dịch lớn trên tuyến biên giới Việt – Trung trong kháng chiến chống Pháp.",
-    coordinates: [106.32, 22.67],
+    coordinates: [106.432, 22.429],
     category: "Chiến dịch",
     hasDetail: false,
   },
@@ -324,7 +327,7 @@ const historicalEventSeeds: HistoricalEventSummary[] = [
     periodId: "chia-cat-1954",
     location: "Hướng Hóa, Quảng Trị",
     summary: "Chuỗi giao tranh lớn quanh căn cứ Khe Sanh trong năm 1968.",
-    coordinates: [106.73, 16.63],
+    coordinates: [106.731, 16.654],
     category: "Chiến dịch",
     hasDetail: false,
   },
@@ -335,9 +338,9 @@ const historicalEventSeeds: HistoricalEventSummary[] = [
     year: 1971,
     yearLabel: "1971",
     periodId: "chia-cat-1954",
-    location: "Quảng Trị – Hạ Lào",
+    location: "Đường 9 – Xépôn, Nam Lào",
     summary: "Chiến dịch diễn ra dọc Đường 9 và khu vực Nam Lào đầu năm 1971.",
-    coordinates: [106.62, 16.69],
+    coordinates: [106.239, 16.681],
     category: "Chiến dịch",
     hasDetail: false,
   },
@@ -369,8 +372,36 @@ const historicalEventSeeds: HistoricalEventSummary[] = [
   },
 ];
 
+const coordinateMetadata: Record<string, Pick<HistoricalEventSummary, "coordinatePrecision" | "coordinateNote">> = {
+  "bach-dang-938": { coordinatePrecision: "area", coordinateNote: "Neo tại cụm di tích Tràng Kênh – Bạch Đằng; phạm vi trận địa cửa sông rộng hơn điểm ghim." },
+  "nhu-nguyet-1077": { coordinatePrecision: "area", coordinateNote: "Điểm đại diện cho một đoạn phòng tuyến dài ven sông Cầu, không phải một công sự duy nhất." },
+  "bach-dang-1288": { coordinatePrecision: "area", coordinateNote: "Neo tại cụm di tích Tràng Kênh – Bạch Đằng; các bãi cọc và luồng giao chiến phân bố trên nhiều nhánh sông." },
+  "chi-lang-1427": { coordinatePrecision: "representative", coordinateNote: "Neo tại ải Chi Lăng; chuỗi chiến sự tiếp tục về Xương Giang, Bắc Giang." },
+  "rach-gam-1785": { coordinatePrecision: "area", coordinateNote: "Neo tại khu di tích Kim Sơn; chiến trường là đoạn sông Tiền từ Rạch Gầm đến Xoài Mút." },
+  "ngoc-hoi-1789": { coordinatePrecision: "representative", coordinateNote: "Điểm neo đại diện giữa hướng Ngọc Hồi và Đống Đa; chiến dịch gồm nhiều mũi tiến công quanh Thăng Long." },
+  "dien-bien-phu-1954": { coordinatePrecision: "area", coordinateNote: "Điểm trung tâm lòng chảo; quần thể chiến trường gồm nhiều cứ điểm phân bố trên địa bàn rộng." },
+  "bach-dang-981": { coordinatePrecision: "area", coordinateNote: "Địa điểm cụ thể của giao chiến trên hệ thống sông Bạch Đằng chưa thể hiện chắc chắn bằng một điểm duy nhất." },
+  "ung-chau-1075": { coordinatePrecision: "site", coordinateNote: "Neo tại khu vực thành Ung Châu xưa, thuộc Nam Ninh ngày nay." },
+  "dong-bo-dau-1258": { coordinatePrecision: "representative", coordinateNote: "Vị trí Đông Bộ Đầu trong không gian Thăng Long hiện còn nhiều cách xác định; điểm ghim chỉ mang tính đại diện." },
+  "chuong-duong-ham-tu-1285": { coordinatePrecision: "representative", coordinateNote: "Neo giữa hai địa danh Chương Dương và Hàm Tử; đây là hai trận riêng trên tuyến sông Hồng." },
+  "tot-dong-chuc-dong-1426": { coordinatePrecision: "area", coordinateNote: "Điểm đại diện cho vùng chiến trận thuộc Chương Mỹ, không phải ranh giới chiến trường." },
+  "tra-ban-1471": { coordinatePrecision: "site", coordinateNote: "Neo tại khu thành Đồ Bàn/Hoàng Đế, địa điểm thường được đối chiếu với Vijaya." },
+  "nhat-le-1648": { coordinatePrecision: "area", coordinateNote: "Neo tại vùng cửa Nhật Lệ; tuyến giao chiến và phòng thủ trải rộng hơn điểm hiển thị." },
+  "thi-nai-1801": { coordinatePrecision: "area", coordinateNote: "Điểm trung tâm đầm Thị Nại, đại diện cho không gian thủy chiến rộng." },
+  "da-nang-1858": { coordinatePrecision: "representative", coordinateNote: "Neo tại thành Điện Hải; mặt trận 1858–1860 còn bao gồm bán đảo Sơn Trà và vùng cửa biển." },
+  "cau-giay-1873": { coordinatePrecision: "area", coordinateNote: "Neo tại khu vực Cầu Giấy hiện nay; cảnh quan và địa danh đã thay đổi đáng kể." },
+  "ba-dinh-1886": { coordinatePrecision: "area", coordinateNote: "Điểm đại diện cho khu căn cứ Ba Đình gồm nhiều làng ở Nga Sơn." },
+  "viet-bac-1947": { coordinatePrecision: "representative", coordinateNote: "Điểm neo vùng; chiến dịch diễn ra trên nhiều hướng tại Bắc Kạn, Cao Bằng, Lạng Sơn và Tuyên Quang." },
+  "bien-gioi-1950": { coordinatePrecision: "representative", coordinateNote: "Neo tại Đông Khê, trận mở màn then chốt; toàn chiến dịch trải dọc Đường số 4." },
+  "khe-sanh-1968": { coordinatePrecision: "site", coordinateNote: "Neo tại khu đường băng/căn cứ Khe Sanh cũ; giao tranh lan rộng quanh Hướng Hóa." },
+  "duong-9-nam-lao-1971": { coordinatePrecision: "representative", coordinateNote: "Neo tại Xépôn, mục tiêu địa lý chính; chiến dịch trải dài từ Đông Hà qua Đường 9 sang Nam Lào." },
+  "xuan-loc-1975": { coordinatePrecision: "area", coordinateNote: "Điểm trung tâm Xuân Lộc, đại diện cho khu vực tác chiến quanh thị xã và các trục đường tiếp cận." },
+  "ho-chi-minh-1975": { coordinatePrecision: "representative", coordinateNote: "Neo tại trung tâm Sài Gòn; chiến dịch gồm năm cánh quân trên toàn vùng Sài Gòn – Gia Định." },
+};
+
 export const historicalEvents: HistoricalEventSummary[] = historicalEventSeeds.map((event) => ({
   ...event,
+  ...coordinateMetadata[event.id],
   hasDetail: true,
 }));
 
@@ -409,7 +440,7 @@ const featuredEventDetails: HistoricalEventDetail[] = [
       "Trở thành một mẫu mực sớm của nghệ thuật tổ chức thủy chiến trên sông ở Việt Nam.",
     ],
     certaintyNote: "Sử liệu xác nhận vai trò của Ngô Quyền, hướng tiến quân của Nam Hán và việc lợi dụng thủy triều. Vị trí, quy mô chính xác của từng bãi cọc và đội hình chiến đấu vẫn đang được khảo cổ học tiếp tục nghiên cứu.",
-    reviewedAt: "16/08/2026",
+    reviewedAt: "20/08/2026",
     media: {
       src: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/da/Model_of_Battle_in_Bach_Dang_River_in_938_AD_-_DSC05544.JPG/960px-Model_of_Battle_in_Bach_Dang_River_in_938_AD_-_DSC05544.JPG",
       alt: "Mô hình trưng bày trận Bạch Đằng năm 938 tại Bảo tàng Lịch sử Quốc gia",
@@ -459,7 +490,7 @@ const featuredEventDetails: HistoricalEventDetail[] = [
       "Để lại hệ thống di tích, bãi cọc và ký ức lịch sử phong phú tại vùng Quảng Yên – Hải Phòng ngày nay.",
     ],
     certaintyNote: "Các nguồn thống nhất về kết quả và vai trò chỉ huy của Trần Quốc Tuấn. Phạm vi từng bãi cọc, luồng tiến cụ thể và mối liên hệ giữa các di tích hiện còn là chủ đề nghiên cứu liên ngành.",
-    reviewedAt: "16/08/2026",
+    reviewedAt: "20/08/2026",
     media: {
       src: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Battle_of_B%E1%BA%A1ch_%C4%90%E1%BA%B1ng_1288_map_vi.png/960px-Battle_of_B%E1%BA%A1ch_%C4%90%E1%BA%B1ng_1288_map_vi.png",
       alt: "Bản đồ khái quát trận Bạch Đằng năm 1288",
@@ -508,7 +539,7 @@ const featuredEventDetails: HistoricalEventDetail[] = [
       "Trở thành một trường hợp nghiên cứu lớn về hậu cần, công sự và chiến dịch bao vây trong thế kỷ XX.",
     ],
     certaintyNote: "Mốc 13/3–7/5 và ba đợt tiến công được nhiều nguồn thống nhất. Cách gọi, phiên âm tên cứ điểm và thống kê lực lượng có thể khác nhau giữa tài liệu Việt Nam và Pháp; trang này tránh dùng số liệu khi chưa đối chiếu đồng nhất.",
-    reviewedAt: "16/08/2026",
+    reviewedAt: "20/08/2026",
     media: {
       src: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ae/Victory_in_Battle_of_Dien_Bien_Phu.jpg/960px-Victory_in_Battle_of_Dien_Bien_Phu.jpg",
       alt: "Lực lượng Việt Minh tại sở chỉ huy Pháp ở Điện Biên Phủ năm 1954",

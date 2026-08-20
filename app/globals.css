@@ -1550,6 +1550,9 @@ input:focus-visible {
   font-size: 9px;
   line-height: 1.45;
 }
+.historical-event-card .historical-event-coordinate { color: #b28b52; font-variant-numeric: tabular-nums; }
+.historical-event-card .historical-event-coordinate-note { margin-top: 7px; color: #8e887b; font-size: 10px; line-height: 1.45; }
+.legend-card > small { display: block; max-width: 225px; margin-top: 5px; color: #777267; font-size: 8px; line-height: 1.45; }
 
 .historical-event-read {
   display: inline-flex;
@@ -2763,6 +2766,8 @@ body:has(.legal-page) {
 .event-hero-facts svg { grid-row: 1 / span 2; color: #a77c42; }
 .event-hero-facts small { color: #686258; font-size: 7px; letter-spacing: 0.08em; text-transform: uppercase; }
 .event-hero-facts strong { overflow: hidden; color: #bcb29f; font-size: 9px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.event-coordinate-note { display: flex; gap: 8px; align-items: flex-start; margin: 14px 0 0; color: #847b6d; font-size: 10px; line-height: 1.55; }
+.event-coordinate-note svg { flex: 0 0 auto; margin-top: 1px; color: #a77c42; }
 
 .event-hero-media { position: relative; align-self: center; margin: 0; border: 1px solid rgba(236, 227, 204, 0.13); background: #0b1110; }
 .event-hero-media img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; filter: sepia(0.14) saturate(0.76) contrast(1.05); }

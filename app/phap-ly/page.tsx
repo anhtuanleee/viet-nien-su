@@ -38,7 +38,7 @@ export default function LegalPage() {
           <div>
             <p className="event-kicker">Phạm vi cấp phép</p>
             <h2>Mã nguồn và dữ liệu của dự án</h2>
-            <p>Toàn bộ mã nguồn, giao diện và dữ liệu gốc do Venn tạo ra trong Việt Niên Sử được phát hành theo MIT License. Người dùng có thể sử dụng, sao chép, sửa đổi, hợp nhất, xuất bản, phân phối, cấp phép lại hoặc bán bản sao, với điều kiện giữ nguyên thông báo bản quyền và giấy phép.</p>
+            <p>Toàn bộ mã nguồn, giao diện và dữ liệu gốc mà Venn có quyền cấp phép trong Việt Niên Sử được phát hành theo MIT License. Người dùng có thể sử dụng, sao chép, sửa đổi, hợp nhất, xuất bản, phân phối, cấp phép lại hoặc bán bản sao, với điều kiện giữ nguyên thông báo bản quyền và giấy phép.</p>
           </div>
         </section>
 
@@ -48,7 +48,7 @@ export default function LegalPage() {
             <p className="event-kicker">Tư liệu bên thứ ba</p>
             <h2>Giấy phép gốc vẫn được bảo lưu</h2>
             <p>MIT License của dự án không thay thế quyền và điều kiện sử dụng của thư viện, ảnh tư liệu, dữ liệu địa lý hoặc tài liệu tham khảo do bên thứ ba cung cấp. Các nội dung này tiếp tục thuộc chủ sở hữu tương ứng và được sử dụng theo nguồn, giấy phép hoặc điều kiện được ghi kèm.</p>
-            <a className="legal-source-link" href="/?period=dang-trong-ngoai">Xem nguồn tư liệu trong bản đồ <ExternalLink size={14} /></a>
+            <a className="legal-source-link" href="https://github.com/anhtuanleee/viet-nien-su/blob/main/THIRD_PARTY_NOTICES.md" target="_blank" rel="noreferrer">Xem thông báo tài sản bên thứ ba <ExternalLink size={14} /></a>
           </div>
         </section>
 
@@ -57,7 +57,7 @@ export default function LegalPage() {
           <div>
             <p className="event-kicker">Minh họa do dự án tạo</p>
             <h2>Ảnh phục dựng được ghi nhãn riêng</h2>
-            <p>Các hình mang nhãn “Minh họa AI” là tài sản minh họa do Việt Niên Sử tạo mới theo bối cảnh biên tập. Chúng thuộc phạm vi phát hành của dự án theo MIT License, không sao chép quốc kỳ, quốc huy hoặc biểu tượng nhà nước và không được trình bày như ảnh tư liệu lịch sử.</p>
+            <p>Các hình mang nhãn “Minh họa AI” được Việt Niên Sử tạo mới theo bối cảnh biên tập và không được trình bày như ảnh tư liệu lịch sử. MIT chỉ áp dụng trong phạm vi quyền mà Venn thực tế có thể cấp; dự án không tuyên bố độc quyền vượt quá quyền phát sinh theo pháp luật áp dụng.</p>
           </div>
         </section>
 
@@ -71,6 +71,7 @@ export default function LegalPage() {
             <p>THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p>
           </div>
         </section>
+        <aside className="legal-notice"><ShieldCheck size={20} /><p>Phát hiện sai nguồn, sai giấy phép hoặc nội dung cần đính chính? Hãy gửi hồ sơ tại <a href="/dinh-chinh">trang đính chính &amp; báo lỗi</a>.</p></aside>
       </article>
 
       <SiteFooter />

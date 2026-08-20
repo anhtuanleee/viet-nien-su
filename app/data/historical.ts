@@ -91,7 +91,7 @@ export const periods: HistoricalPeriod[] = [
     description: "Sau khi Nam Việt bị chinh phục, nhà Hán tổ chức các quận Giao Chỉ, Cửu Chân và Nhật Nam trên phần đất Việt Nam ngày nay.",
     territoryNote: "Phạm vi ba quận được giản lược theo địa lý hiện đại.", confidence: "Trung bình", color: "#7d7a72",
     center: [106.0, 18.8], zoom: 4.2,
-    markers: [{ name: "Luy Lâu", coordinates: [106.06, 21.09], role: "Trị sở Giao Chỉ" }],
+    markers: [{ name: "Luy Lâu", coordinates: [106.05, 21.038], role: "Trị sở Giao Chỉ" }],
     sourceNote: "Ranh giới hành chính cổ thay đổi theo thời gian và chỉ được thể hiện gần đúng.",
   },
   {
@@ -192,7 +192,7 @@ export const periods: HistoricalPeriod[] = [
     zoom: 4.35,
     markers: [
       { name: "Thăng Long", coordinates: [105.84, 21.03], role: "Kinh đô" },
-      { name: "Hóa Châu", coordinates: [107.49, 16.47], role: "Biên viễn" },
+      { name: "Hóa Châu", coordinates: [107.515, 16.53], role: "Biên viễn (vị trí gần đúng)" },
     ],
     sourceNote: "Đường ranh phía tây và vùng dân tộc thiểu số là phục dựng khái quát.",
   },
@@ -220,7 +220,7 @@ export const periods: HistoricalPeriod[] = [
     description: "Sau chiến dịch năm 1471, vùng Vijaya được tổ chức thành thừa tuyên Quảng Nam, tạo thay đổi lớn ở miền Trung.",
     territoryNote: "Từ biên giới phía bắc đến vùng Bình Định–Phú Yên ngày nay.", confidence: "Trung bình", color: "#dc9140",
     center: [106.3, 17.8], zoom: 4.1,
-    markers: [{ name: "Đông Kinh", coordinates: [105.84, 21.03], role: "Kinh đô" }, { name: "Vijaya", coordinates: [109.0, 13.78], role: "Vùng mới sáp nhập" }],
+    markers: [{ name: "Đông Kinh", coordinates: [105.84, 21.03], role: "Kinh đô" }, { name: "Vijaya / Đồ Bàn", coordinates: [109.057, 13.94], role: "Vùng mới sáp nhập" }],
     sourceNote: "Không gian cư trú và quyền lực địa phương không trùng hoàn toàn với đường biên hành chính.",
   },
   {
@@ -229,7 +229,7 @@ export const periods: HistoricalPeriod[] = [
     description: "Nhà Mạc kiểm soát Đông Kinh và phần lớn miền Bắc, trong khi lực lượng Lê trung hưng xây dựng căn cứ từ Thanh Hóa và mở rộng dần.",
     territoryNote: "Hai vùng quyền lực biến động liên tục; lớp bản đồ chỉ là lát cắt khái quát.", confidence: "Trung bình", color: "#c87847",
     center: [105.8, 19.5], zoom: 4.35,
-    markers: [{ name: "Đông Kinh", coordinates: [105.84, 21.03], role: "Bắc triều" }, { name: "Tây Đô", coordinates: [105.6, 19.8], role: "Nam triều" }],
+    markers: [{ name: "Đông Kinh", coordinates: [105.84, 21.03], role: "Bắc triều" }, { name: "Tây Đô / Thành Nhà Hồ", coordinates: [105.605, 20.078], role: "Nam triều" }],
     sourceNote: "Không dùng polygon này để suy ra ranh giới ổn định trong toàn bộ giai đoạn.",
   },
   {
@@ -260,7 +260,7 @@ export const periods: HistoricalPeriod[] = [
     description: "Phong trào Tây Sơn lần lượt kiểm soát Đàng Trong và Đàng Ngoài, chấm dứt cục diện Trịnh–Nguyễn và thiết lập một triều đại mới.",
     territoryNote: "Gần toàn bộ lãnh thổ từ Bắc Bộ đến Nam Bộ, với kiểm soát thay đổi theo từng năm.", confidence: "Trung bình", color: "#d66d3f",
     center: [106.4, 16.2], zoom: 3.95,
-    markers: [{ name: "Phú Xuân", coordinates: [107.58, 16.46], role: "Kinh đô" }, { name: "Quy Nhơn", coordinates: [109.22, 13.78], role: "Căn cứ khởi phát" }],
+    markers: [{ name: "Phú Xuân", coordinates: [107.58, 16.46], role: "Kinh đô" }, { name: "Tây Sơn, Bình Định", coordinates: [108.918, 13.944], role: "Không gian khởi phát (gần đúng)" }],
     sourceNote: "Lát cắt đại diện, không mô tả đầy đủ nội chiến Tây Sơn–Nguyễn.",
   },
   {

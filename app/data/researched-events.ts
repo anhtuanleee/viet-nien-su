@@ -297,6 +297,10 @@ const illustrationByEventId: Record<string, string> = {
   "ho-chi-minh-1975": "/event-illustrations/unique/ho-chi-minh-1975.webp",
 };
 
+for (const eventId of Object.keys(illustrationByEventId)) {
+  illustrationByEventId[eventId] = illustrationByEventId[eventId].replace("/unique/", "/labeled/");
+}
+
 const projectMedia = (summary: HistoricalEventSummary) => {
   const src = illustrationByEventId[summary.id];
   if (!src) throw new Error(`Không tìm thấy minh họa riêng cho ${summary.id}`);
@@ -306,7 +310,7 @@ const projectMedia = (summary: HistoricalEventSummary) => {
     alt: `Minh họa diễn giải bối cảnh ${summary.name} ${summary.yearLabel}`,
     caption: `Minh họa AI diễn giải riêng bối cảnh ${summary.name} ${summary.yearLabel}; không phải ảnh tư liệu hay phục dựng chính xác trận đánh.`,
     credit: "Minh họa AI: Việt Niên Sử / Venn",
-    license: "MIT",
+    license: "Tài sản dự án · xem điều kiện sử dụng",
     kind: "generated" as const,
     licenseUrl: "/phap-ly",
     sourceUrl: "/phap-ly",
@@ -330,9 +334,17 @@ export function buildResearchedEventDetails(summaries: HistoricalEventSummary[])
       outcome: seed.outcome,
       significance: seed.significance,
       certaintyNote: seed.certainty,
-      reviewedAt: "16/08/2026",
+      reviewedAt: "20/08/2026",
       media: projectMedia(summary),
-      sources: seed.sources.map(([title, publisher, url, note]) => ({ title, publisher, url, note })),
+      sources: seed.sources.map(([title, publisher, url, note]) => ({
+        title,
+        publisher,
+        url,
+        note,
+        level: /Bảo tàng|Lưu trữ|Quân đội nhân dân|U\.S\.|UNESCO|Chính phủ|Cục/.test(publisher)
+          ? "Nguồn chính thức" as const
+          : "Nguồn tham khảo" as const,
+      })),
     };
   });
 }

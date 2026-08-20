@@ -36,6 +36,12 @@ import type { HistoricalEventSummary as HistoricalEventInfo } from "../data/even
 import { periods, sourceLinks, territoryData } from "../data/historical";
 import BrandMark from "./BrandMark";
 
+const coordinatePrecisionLabel = {
+  site: "Điểm di tích",
+  area: "Vùng sự kiện",
+  representative: "Điểm neo đại diện",
+} as const;
+
 const historicalContextLabels = (year: number) => {
   const sea = { name: "BIỂN ĐÔNG", coordinates: [112.0, 15.2] as [number, number] };
   if (year < 43) return [
@@ -84,6 +90,7 @@ type IslandInfo = {
   name: string;
   kind: "Đảo" | "Quần đảo";
   region: string;
+  statusNote?: string;
   coordinates: [number, number];
 };
 
@@ -101,11 +108,11 @@ const islands: IslandInfo[] = [
   { id: "co-to", name: "Cô Tô", kind: "Quần đảo", region: "Vịnh Bắc Bộ", coordinates: [107.77, 20.99] },
   { id: "bach-long-vi", name: "Bạch Long Vĩ", kind: "Đảo", region: "Vịnh Bắc Bộ", coordinates: [107.72, 20.13] },
   { id: "con-co", name: "Cồn Cỏ", kind: "Đảo", region: "Quảng Trị", coordinates: [107.34, 17.16] },
-  { id: "hoang-sa", name: "Hoàng Sa", kind: "Quần đảo", region: "Biển Đông", coordinates: [112.0, 16.5] },
+  { id: "hoang-sa", name: "Hoàng Sa", kind: "Quần đảo", region: "Đặc khu Hoàng Sa · TP. Đà Nẵng", statusNote: "Quần đảo Hoàng Sa, Việt Nam", coordinates: [112.0, 16.5] },
   { id: "ly-son", name: "Lý Sơn", kind: "Đảo", region: "Quảng Ngãi", coordinates: [109.12, 15.38] },
   { id: "cu-lao-cham", name: "Cù Lao Chàm", kind: "Quần đảo", region: "Đà Nẵng", coordinates: [108.52, 15.95] },
   { id: "phu-quy", name: "Phú Quý", kind: "Đảo", region: "Lâm Đồng", coordinates: [108.94, 10.52] },
-  { id: "truong-sa", name: "Trường Sa", kind: "Quần đảo", region: "Biển Đông", coordinates: [114.0, 10.0] },
+  { id: "truong-sa", name: "Trường Sa", kind: "Quần đảo", region: "Đặc khu Trường Sa · tỉnh Khánh Hòa", statusNote: "Quần đảo Trường Sa, Việt Nam", coordinates: [114.0, 10.0] },
   { id: "con-dao", name: "Côn Đảo", kind: "Quần đảo", region: "TP. Hồ Chí Minh", coordinates: [106.61, 8.68] },
   { id: "phu-quoc", name: "Phú Quốc", kind: "Đảo", region: "An Giang", coordinates: [103.96, 10.22] },
   { id: "tho-chau", name: "Thổ Châu", kind: "Quần đảo", region: "An Giang", coordinates: [103.48, 9.3] },
@@ -2106,11 +2113,11 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
                   onClick={() => selectIsland(island)}
                 >
                   <i />
-                  <span><strong>{island.name}</strong><small>{island.kind} · {island.region}</small></span>
+                  <span><strong>{island.name}</strong><small>{island.statusNote ?? island.kind} · {island.region}</small></span>
                 </button>
               ))}
             </div>
-            <p>Lớp định vị hiện đại, không suy diễn cho mọi thời kỳ.</p>
+            <p>Lớp địa danh hiện đại, tách biệt với các vùng lịch sử phục dựng.</p>
           </div>
         )}
       </aside>
@@ -2125,6 +2132,7 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
         <span><i className="legend-province" /> Tỉnh/thành 2025</span>
         <span><i className="legend-island" /> Đảo / quần đảo</span>
         <span><i className="legend-event" /> Sự kiện lịch sử</span>
+        <small>Tọa độ WGS84. Polygon lịch sử chỉ minh họa không gian kiểm soát/ảnh hưởng, không phải địa giới hay tuyên bố chủ quyền hiện đại. Điểm sự kiện không phải ranh giới chiến trường.</small>
       </aside> : (
         <button className="panel-reopen legend-reopen" onClick={() => setLegendOpen(true)} aria-label="Mở chú giải" title="Mở chú giải">
           <CircleHelp size={17} />
@@ -2138,7 +2146,11 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
             <span>{selectedHistoricalEvent ? "Sự kiện đã chọn" : "Sự kiện đang trỏ"} · {visibleHistoricalEvent.year}</span>
             <strong>{visibleHistoricalEvent.name} {visibleHistoricalEvent.yearLabel}</strong>
             <small>{visibleHistoricalEvent.location}</small>
+            <small className="historical-event-coordinate">
+              {coordinatePrecisionLabel[visibleHistoricalEvent.coordinatePrecision]} · {visibleHistoricalEvent.coordinates[1].toFixed(3)}°N, {visibleHistoricalEvent.coordinates[0].toFixed(3)}°E
+            </small>
             <p>{visibleHistoricalEvent.summary}</p>
+            <p className="historical-event-coordinate-note">{visibleHistoricalEvent.coordinateNote}</p>
             {visibleHistoricalEvent.hasDetail && (
               <a className="historical-event-read" href={`/su-kien/${visibleHistoricalEvent.slug}`}>
                 Đọc hồ sơ đầy đủ <ArrowUpRight size={13} />
@@ -2156,6 +2168,7 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
           <div>
             <span>{selectedIsland ? "Địa danh đã chọn" : "Địa danh đang trỏ"}</span>
             <strong>{visibleIsland.name}</strong>
+            {visibleIsland.statusNote && <small>{visibleIsland.statusNote}</small>}
             <small>{visibleIsland.kind} · {visibleIsland.region}</small>
           </div>
           {selectedIsland && (
