@@ -24,6 +24,7 @@ import {
   X,
 } from "lucide-react";
 import type {
+  ExpressionSpecification,
   FilterSpecification,
   Map as MapLibreMap,
   Marker,
@@ -144,7 +145,7 @@ const baseStyle: StyleSpecification = {
   ],
 };
 
-const periodFilter = (periodId: string): FilterSpecification => [
+const periodFilter = (periodId: string): ExpressionSpecification => [
   "==",
   ["get", "periodId"],
   periodId,
@@ -400,7 +401,7 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
   const markerRefs = useRef<Marker[]>([]);
   const neighborMarkerRefs = useRef<Marker[]>([]);
   const playTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const cinematicTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const cinematicTimerRef = useRef<number | null>(null);
   const [activeIndex, setActiveIndex] = useState(() => {
     const requestedIndex = initialPeriodId
       ? periods.findIndex((period) => period.id === initialPeriodId)
@@ -629,7 +630,7 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
         maxZoom: 8,
         maxPitch: 68,
         attributionControl: false,
-        antialias: true,
+        canvasContextAttributes: { antialias: true },
         pixelRatio: Math.min(window.devicePixelRatio || 1, initialQuality.maxPixelRatio),
         });
       } catch {
