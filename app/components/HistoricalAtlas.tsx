@@ -1760,7 +1760,6 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
         </a>
 
         <div className="header-actions">
-          <a className="prototype-label ownership-label" href="/phap-ly"><i /> Venn · MIT · v0.1.0</a>
           <button
             className={`text-button story-trigger ${storyModeEnabled ? "is-active" : ""}`}
             onClick={toggleStoryMode}
