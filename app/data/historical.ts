@@ -14,7 +14,12 @@ export type HistoricalPeriod = {
   color: string;
   center: [number, number];
   zoom: number;
-  markers: Array<{ name: string; coordinates: [number, number]; role: string }>;
+  markers: Array<{
+    name: string;
+    coordinates: [number, number];
+    role: string;
+    kind?: "place" | "maritime";
+  }>;
   sourceNote: string;
 };
 
@@ -251,8 +256,10 @@ export const periods: HistoricalPeriod[] = [
       { name: "Thăng Long", coordinates: [105.84, 21.03], role: "Đàng Ngoài" },
       { name: "Phú Xuân", coordinates: [107.58, 16.46], role: "Đàng Trong" },
       { name: "Gia Định", coordinates: [106.69, 10.78], role: "Phủ mới" },
+      { name: "Hoàng Sa", coordinates: [112.0, 16.5], role: "Đội Hoàng Sa · sử liệu thế kỷ XVII", kind: "maritime" },
+      { name: "Bắc Hải / Trường Sa", coordinates: [114.0, 10.0], role: "Đội Bắc Hải do đội Hoàng Sa kiêm quản", kind: "maritime" },
     ],
-    sourceNote: "Trấn Thuận Thành được phân lớp tự trị thay vì gộp hoàn toàn vào Đàng Trong.",
+    sourceNote: "Trấn Thuận Thành được phân lớp tự trị; Hoàng Sa–Bắc Hải là điểm sử liệu biển đảo, không phải polygon biên giới chính xác.",
   },
   {
     id: "tay-son", year: 1788, displayYear: "1788", range: "1778–1802",
@@ -260,8 +267,13 @@ export const periods: HistoricalPeriod[] = [
     description: "Phong trào Tây Sơn lần lượt kiểm soát Đàng Trong và Đàng Ngoài, chấm dứt cục diện Trịnh–Nguyễn và thiết lập một triều đại mới.",
     territoryNote: "Gần toàn bộ lãnh thổ từ Bắc Bộ đến Nam Bộ, với kiểm soát thay đổi theo từng năm.", confidence: "Trung bình", color: "#d66d3f",
     center: [106.4, 16.2], zoom: 3.95,
-    markers: [{ name: "Phú Xuân", coordinates: [107.58, 16.46], role: "Kinh đô" }, { name: "Tây Sơn, Bình Định", coordinates: [108.918, 13.944], role: "Không gian khởi phát (gần đúng)" }],
-    sourceNote: "Lát cắt đại diện, không mô tả đầy đủ nội chiến Tây Sơn–Nguyễn.",
+    markers: [
+      { name: "Phú Xuân", coordinates: [107.58, 16.46], role: "Kinh đô" },
+      { name: "Tây Sơn, Bình Định", coordinates: [108.918, 13.944], role: "Không gian khởi phát (gần đúng)" },
+      { name: "Hoàng Sa", coordinates: [112.0, 16.5], role: "Hoạt động hàng hải tiếp tục dưới Tây Sơn", kind: "maritime" },
+      { name: "Bắc Hải / Trường Sa", coordinates: [114.0, 10.0], role: "Không gian đội Hoàng Sa–Bắc Hải", kind: "maritime" },
+    ],
+    sourceNote: "Lát cắt đại diện; điểm Hoàng Sa–Bắc Hải ghi nhận hoạt động theo sử liệu, không mô tả đầy đủ nội chiến Tây Sơn–Nguyễn.",
   },
   {
     id: "gia-long-1802", year: 1802, displayYear: "1802", range: "1802–1832",
@@ -269,8 +281,12 @@ export const periods: HistoricalPeriod[] = [
     description: "Nguyễn Ánh lên ngôi Gia Long, lập triều Nguyễn và thống nhất lãnh thổ dưới một chính quyền trung ương đặt tại Huế.",
     territoryNote: "Lãnh thổ đất liền có hình dạng gần Việt Nam hiện đại.", confidence: "Cao", color: "#d6613c",
     center: [106.1, 16.2], zoom: 3.95,
-    markers: [{ name: "Huế", coordinates: [107.58, 16.46], role: "Kinh đô" }],
-    sourceNote: "Đường biên miền núi và quan hệ với các vùng phụ thuộc cần được đọc theo bối cảnh thế kỷ XIX.",
+    markers: [
+      { name: "Huế", coordinates: [107.58, 16.46], role: "Kinh đô" },
+      { name: "Hoàng Sa", coordinates: [112.0, 16.5], role: "Gia Long cử lực lượng; mốc sử liệu 1816", kind: "maritime" },
+      { name: "Bắc Hải / Trường Sa", coordinates: [114.0, 10.0], role: "Hoạt động của đội Hoàng Sa–Bắc Hải", kind: "maritime" },
+    ],
+    sourceNote: "Đường biên miền núi là gần đúng; các điểm biển đảo biểu thị chứng cứ hoạt động quản lý, không phải polygon hiện đại.",
   },
   {
     id: "dai-nam-1835",
@@ -290,8 +306,10 @@ export const periods: HistoricalPeriod[] = [
     markers: [
       { name: "Huế", coordinates: [107.58, 16.46], role: "Kinh đô" },
       { name: "Trấn Tây", coordinates: [104.92, 11.56], role: "Trung tâm hành chính" },
+      { name: "Hoàng Sa", coordinates: [112.0, 16.5], role: "Khảo sát, đo đạc và cắm mốc 1834–1838", kind: "maritime" },
+      { name: "Vạn Lý Trường Sa", coordinates: [114.0, 10.0], role: "Ghi nhận trong bản đồ và châu bản triều Nguyễn", kind: "maritime" },
     ],
-    sourceNote: "Không đồng nhất vùng ảnh hưởng với biên giới chủ quyền hiện đại.",
+    sourceNote: "Không đồng nhất vùng ảnh hưởng hoặc điểm sử liệu biển đảo với polygon biên giới chủ quyền hiện đại.",
   },
   {
     id: "nam-ky-1867", year: 1867, displayYear: "1867", range: "1862–1867",
@@ -299,8 +317,13 @@ export const periods: HistoricalPeriod[] = [
     description: "Ba tỉnh miền Đông được nhượng năm 1862 và ba tỉnh miền Tây bị Pháp chiếm năm 1867, tách Nam Kỳ khỏi quyền quản lý của triều Nguyễn.",
     territoryNote: "Đại Nam ở phía bắc và thuộc địa Nam Kỳ ở phía nam được tách thành hai lớp.", confidence: "Cao", color: "#b85a45",
     center: [106.1, 16.0], zoom: 3.95,
-    markers: [{ name: "Huế", coordinates: [107.58, 16.46], role: "Kinh đô Đại Nam" }, { name: "Sài Gòn", coordinates: [106.69, 10.78], role: "Trung tâm Nam Kỳ" }],
-    sourceNote: "Mốc 1867 nhấn mạnh thay đổi hành chính ở Nam Kỳ.",
+    markers: [
+      { name: "Huế", coordinates: [107.58, 16.46], role: "Kinh đô Đại Nam" },
+      { name: "Sài Gòn", coordinates: [106.69, 10.78], role: "Trung tâm Nam Kỳ" },
+      { name: "Hoàng Sa", coordinates: [112.0, 16.5], role: "Hoạt động quản lý biển đảo của triều Nguyễn", kind: "maritime" },
+      { name: "Trường Sa", coordinates: [114.0, 10.0], role: "Ghi nhận trong hệ thống biển đảo triều Nguyễn", kind: "maritime" },
+    ],
+    sourceNote: "Mốc 1867 nhấn mạnh Nam Kỳ; điểm biển đảo dựa trên hồ sơ triều Nguyễn đến cuối thế kỷ XIX.",
   },
   {
     id: "phap-thuoc-1887", year: 1887, displayYear: "1887", range: "1887–1945",
@@ -308,8 +331,14 @@ export const periods: HistoricalPeriod[] = [
     description: "Không gian Việt Nam bị chia thành Bắc Kỳ, Trung Kỳ và Nam Kỳ trong Liên bang Đông Dương thuộc Pháp, với mô hình quản trị khác nhau.",
     territoryNote: "Biên giới đất liền gần hiện đại, nhưng ba kỳ không có cùng địa vị pháp lý.", confidence: "Cao", color: "#68746f",
     center: [106.1, 16.2], zoom: 3.95,
-    markers: [{ name: "Hà Nội", coordinates: [105.84, 21.03], role: "Trung tâm liên bang" }, { name: "Huế", coordinates: [107.58, 16.46], role: "Kinh đô triều Nguyễn" }, { name: "Sài Gòn", coordinates: [106.69, 10.78], role: "Trung tâm Nam Kỳ" }],
-    sourceNote: "Bản đồ chỉ phân lớp hành chính cấp lớn, không mô tả toàn bộ thay đổi theo thời gian.",
+    markers: [
+      { name: "Hà Nội", coordinates: [105.84, 21.03], role: "Trung tâm liên bang" },
+      { name: "Huế", coordinates: [107.58, 16.46], role: "Kinh đô triều Nguyễn" },
+      { name: "Sài Gòn", coordinates: [106.69, 10.78], role: "Trung tâm Nam Kỳ" },
+      { name: "Hoàng Sa", coordinates: [112.0, 16.5], role: "Pháp tiếp quản; lập đơn vị hành chính năm 1938", kind: "maritime" },
+      { name: "Trường Sa", coordinates: [114.0, 10.0], role: "Pháp tuyên bố và tổ chức quản lý thời thuộc địa", kind: "maritime" },
+    ],
+    sourceNote: "Bản đồ phân lớp cấp lớn; điểm biển đảo ghi nhận hành vi quản lý thời Pháp, không phải polygon phân định biển.",
   },
   {
     id: "doc-lap-1945", year: 1945, displayYear: "1945", range: "1945–1954",
@@ -317,8 +346,12 @@ export const periods: HistoricalPeriod[] = [
     description: "Nước Việt Nam Dân chủ Cộng hòa tuyên bố độc lập ngày 2/9/1945. Quyền kiểm soát lãnh thổ thay đổi nhiều trong cuộc kháng chiến sau đó.",
     territoryNote: "Thể hiện yêu sách lãnh thổ toàn quốc; không đồng nhất với vùng kiểm soát quân sự từng thời điểm.", confidence: "Trung bình", color: "#d34f3c",
     center: [106.1, 16.2], zoom: 3.95,
-    markers: [{ name: "Hà Nội", coordinates: [105.84, 21.03], role: "Thủ đô" }],
-    sourceNote: "Cần một lớp dữ liệu riêng nếu muốn mô tả diễn biến kiểm soát 1946–1954.",
+    markers: [
+      { name: "Hà Nội", coordinates: [105.84, 21.03], role: "Thủ đô" },
+      { name: "Hoàng Sa", coordinates: [112.0, 16.5], role: "Yêu sách kế thừa; kiểm soát thực địa biến động", kind: "maritime" },
+      { name: "Trường Sa", coordinates: [114.0, 10.0], role: "Yêu sách kế thừa; kiểm soát thực địa biến động", kind: "maritime" },
+    ],
+    sourceNote: "Cần lớp riêng để mô tả kiểm soát 1945–1954; marker biển đảo không khẳng định kiểm soát liên tục từng năm.",
   },
   {
     id: "chia-cat-1954",
@@ -338,8 +371,10 @@ export const periods: HistoricalPeriod[] = [
     markers: [
       { name: "Hà Nội", coordinates: [105.84, 21.03], role: "Miền Bắc" },
       { name: "Sài Gòn", coordinates: [106.69, 10.78], role: "Miền Nam" },
+      { name: "Hoàng Sa", coordinates: [112.0, 16.5], role: "VNCH quản lý một phần; Trung Quốc chiếm toàn bộ năm 1974", kind: "maritime" },
+      { name: "Trường Sa", coordinates: [114.0, 10.0], role: "VNCH quản lý một số thực thể; tranh chấp đa bên", kind: "maritime" },
     ],
-    sourceNote: "Giới tuyến được giản lược cho tỷ lệ khu vực; không phải biên giới quốc gia vĩnh viễn.",
+    sourceNote: "Giới tuyến là tạm thời; marker biển đảo tách yêu sách chủ quyền khỏi tình trạng kiểm soát thực địa.",
   },
   {
     id: "viet-nam-hien-dai",
@@ -359,8 +394,10 @@ export const periods: HistoricalPeriod[] = [
     markers: [
       { name: "Hà Nội", coordinates: [105.84, 21.03], role: "Thủ đô" },
       { name: "TP. Hồ Chí Minh", coordinates: [106.69, 10.78], role: "Đô thị lớn" },
+      { name: "Hoàng Sa", coordinates: [112.0, 16.5], role: "Việt Nam tuyên bố chủ quyền; Trung Quốc kiểm soát từ 1974", kind: "maritime" },
+      { name: "Trường Sa", coordinates: [114.0, 10.0], role: "Việt Nam quản lý một số thực thể; tranh chấp đa bên", kind: "maritime" },
     ],
-    sourceNote: "Đường bờ hiện đại và lớp 34 tỉnh/thành dùng hình học WGS84 cập nhật sau sắp xếp năm 2025.",
+    sourceNote: "Đường bờ và lớp 34 tỉnh/thành dùng WGS84 năm 2025; marker biển đảo phân biệt tuyên bố chủ quyền với kiểm soát thực địa.",
   },
 ];
 
@@ -447,7 +484,19 @@ export const sourceLinks = [
   },
   {
     label: "Office of the Historian — Hiệp định Genève 1954",
-    href: "https://history.state.gov/milestones/1953-1960/dien-bien-phu",
+    href: "https://history.state.gov/historicaldocuments/frus1952-54v16/d1035",
+  },
+  {
+    label: "Sở KH&CN Quảng Bình — Bố Chính, Địa Lý và Ma Linh năm 1069",
+    href: "https://skhcn.quangbinh.gov.vn/3cms/upload/khcn/File/Hoithao/CANVUONG/29.pdf",
+  },
+  {
+    label: "Bảo tàng Lịch sử Quốc gia — châu Ô, châu Lý và mốc 1306",
+    href: "https://baotanglichsu.vn/vi/Articles/3098/15311/cong-chua-huyen-tran-voi-lich-su-dan-toc.html",
+  },
+  {
+    label: "Bảo tàng Lịch sử Quốc gia — thừa tuyên Quảng Nam năm 1471",
+    href: "https://baotanglichsu.vn/vi/Articles/3101/73267/xu-quang-nam-xua-su-kien-lon-nam-1471.html",
   },
   {
     label: "Bảo tàng Lịch sử Quốc gia — triển lãm các trận đánh, chiến dịch tiêu biểu",

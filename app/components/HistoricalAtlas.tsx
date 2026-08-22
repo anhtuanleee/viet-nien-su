@@ -13,6 +13,7 @@ import {
   Gauge,
   Eye,
   EyeOff,
+  Flag,
   Layers3,
   MapPinned,
   Mountain,
@@ -26,11 +27,12 @@ import {
 import type {
   ExpressionSpecification,
   FilterSpecification,
+  GeoJSONSource,
   Map as MapLibreMap,
   Marker,
   StyleSpecification,
 } from "maplibre-gl";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { historicalEvents } from "../data/events";
 import type { HistoricalEventSummary as HistoricalEventInfo } from "../data/events";
@@ -151,9 +153,37 @@ const periodFilter = (periodId: string): ExpressionSpecification => [
   periodId,
 ];
 
+// Bump whenever generated geometry changes so MapLibre/browser caches cannot
+// keep an older polygon while the Vite dev server is still running.
+const historicalDataVersion = "2026-08-23.4";
+const historicalPeriodPath = (periodId: string) =>
+  `/data/historical-territories/${periodId}.geojson?v=${historicalDataVersion}`;
+
+const emptyFeatureCollection = {
+  type: "FeatureCollection" as const,
+  features: [],
+};
+
 const emptyProvinceFilter: FilterSpecification = ["==", ["get", "code"], ""];
 const emptyIslandFilter: FilterSpecification = ["==", ["get", "id"], ""];
 const emptyHistoricalEventFilter: FilterSpecification = ["==", ["get", "id"], ""];
+
+const modernProvinceLayerIds = [
+  "province-reference-fill",
+  "province-boundaries",
+  "province-hit-area",
+  "province-hover",
+  "province-selected",
+  "province-hover-outline",
+  "province-selected-outline",
+] as const;
+
+const modernIslandLayerIds = [
+  "island-points",
+  "island-hit-area",
+  "island-hover",
+  "island-selected",
+] as const;
 
 type ProvinceInfo = {
   code: string;
@@ -197,6 +227,27 @@ type ProvinceGeoFeature = {
   geometry: PolygonGeometry | MultiPolygonGeometry;
 };
 
+type HistoricalSourceManifest = {
+  sources: Record<string, {
+    label: string;
+    href: string;
+    role?: string;
+    license?: string;
+  }>;
+  periods: Record<string, {
+    sourceIds: string[];
+    referenceSourceIds?: string[];
+    geometrySources?: Array<{
+      sourceId: string;
+      imageYear: string;
+      imageUrl: string;
+      pageUrl: string;
+      reconstructionMethod: string;
+      georeferenceAccuracyKm?: number;
+    }>;
+  }>;
+};
+
 const provinceInfoFromProperties = (properties?: Record<string, unknown>): ProvinceInfo | null => {
   if (!properties) return null;
   return {
@@ -225,7 +276,7 @@ const controlLabel = (control: TerritoryInfo["control"]) =>
   control === "direct"
     ? "Kiểm soát trực tiếp"
     : control === "autonomous"
-      ? "Tự trị / phụ thuộc"
+      ? "Tự trị / phụ thuộc / bị chiếm"
       : "Ảnh hưởng / hành chính ngắn hạn";
 
 const confidenceLabel = (confidence: TerritoryInfo["confidence"]) =>
@@ -345,10 +396,11 @@ const depthPresets: Array<{
   terrain: number;
   extrusion: number;
   pitch: number;
+  cameraZoomOut: number;
 }> = [
-  { id: "standard", label: "Chuẩn", terrain: 1.15, extrusion: 1, pitch: 52 },
-  { id: "deep", label: "Nổi sâu", terrain: 1.65, extrusion: 1.55, pitch: 62 },
-  { id: "cinematic", label: "Điện ảnh", terrain: 2.05, extrusion: 2.05, pitch: 68 },
+  { id: "standard", label: "Chuẩn", terrain: 1.15, extrusion: 1, pitch: 52, cameraZoomOut: 0.18 },
+  { id: "deep", label: "Nổi sâu", terrain: 1.65, extrusion: 1.55, pitch: 62, cameraZoomOut: 0.32 },
+  { id: "cinematic", label: "Điện ảnh", terrain: 2.05, extrusion: 2.05, pitch: 68, cameraZoomOut: 0.48 },
 ];
 
 const eventFilters: Array<{ id: EventFilter; label: string }> = [
@@ -423,8 +475,9 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
   const [qualityPreferenceLoaded, setQualityPreferenceLoaded] = useState(false);
   const [cinematic3dEnabled, setCinematic3dEnabled] = useState(false);
   const [contextEnabled, setContextEnabled] = useState(true);
-  const [provincesEnabled, setProvincesEnabled] = useState(true);
-  const [islandsEnabled, setIslandsEnabled] = useState(true);
+  const [modernBoundaryEnabled, setModernBoundaryEnabled] = useState(false);
+  const [provincesEnabled, setProvincesEnabled] = useState(false);
+  const [islandsEnabled, setIslandsEnabled] = useState(false);
   const [historicalEventsEnabled, setHistoricalEventsEnabled] = useState(true);
   const [uncertaintyEnabled, setUncertaintyEnabled] = useState(true);
   const [hoveredProvince, setHoveredProvince] = useState<ProvinceInfo | null>(null);
@@ -438,17 +491,46 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
   const [fallbackHistoricalData, setFallbackHistoricalData] = useState<HistoricalGeoFeature[]>([]);
   const [fallbackProvinceData, setFallbackProvinceData] = useState<ProvinceGeoFeature[]>([]);
   const [sourcesOpen, setSourcesOpen] = useState(false);
-  const [controlsOpen, setControlsOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportStatus, setReportStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
+  const [reportFeedback, setReportFeedback] = useState("");
+  const [sourceManifest, setSourceManifest] = useState<HistoricalSourceManifest | null>(null);
+  const [controlsOpen, setControlsOpen] = useState(true);
   const [uiHidden, setUiHidden] = useState(false);
   const [storyPanelOpen, setStoryPanelOpen] = useState(true);
-  const [legendOpen, setLegendOpen] = useState(false);
+  const [legendOpen, setLegendOpen] = useState(true);
+
+  useEffect(() => {
+    if (!window.matchMedia("(max-width: 1100px)").matches) return;
+    const frame = window.requestAnimationFrame(() => {
+      setControlsOpen(false);
+      setStoryPanelOpen(false);
+      setLegendOpen(false);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
 
   const activePeriod = periods[activeIndex];
   const comparePeriod = periods[compareIndex];
   const activeDepthPreset = depthPresets.find((preset) => preset.id === depthPreset) ?? depthPresets[0];
   const activeRenderQuality = renderQualities.find((quality) => quality.id === renderQuality) ?? renderQualities[2];
+  const activeSourceGroups = useMemo(() => {
+    const periodSources = sourceManifest?.periods[activePeriod.id];
+    if (!periodSources) return null;
+    const resolve = (ids: string[]) => ids
+      .map((id) => ({ id, ...sourceManifest.sources[id] }))
+      .filter((source) => source.label && source.href);
+    return {
+      evidence: resolve(periodSources.sourceIds),
+      references: resolve((periodSources.referenceSourceIds ?? []).filter((id) => !periodSources.sourceIds.includes(id))),
+      geometrySources: periodSources.geometrySources ?? [],
+    };
+  }, [activePeriod.id, sourceManifest]);
   const mapPitch = terrainEnabled
-    ? sharp3dEnabled ? activeDepthPreset.pitch : 52
+    ? sharp3dEnabled ? activeDepthPreset.pitch : depthPresets[0].pitch
+    : 0;
+  const mapZoomOut = terrainEnabled
+    ? sharp3dEnabled ? activeDepthPreset.cameraZoomOut : depthPresets[0].cameraZoomOut
     : 0;
   const historicalFeatures = useMemo(
     () => fallbackHistoricalData.length
@@ -489,6 +571,39 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
     () => historicalEvents.filter((event) => event.periodId === activePeriod.id),
     [activePeriod.id],
   );
+
+  const submitReport = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (reportStatus === "sending") return;
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    setReportStatus("sending");
+    setReportFeedback("");
+    try {
+      const response = await fetch("/api/report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: formData.get("type"),
+          message: formData.get("message"),
+          email: formData.get("email"),
+          website: formData.get("website"),
+          periodId: activePeriod.id,
+          periodName: activePeriod.name,
+          displayYear: activePeriod.displayYear,
+          pageUrl: window.location.href,
+        }),
+      });
+      const result = await response.json() as { error?: string; reportId?: string };
+      if (!response.ok) throw new Error(result.error || "Không thể gửi báo cáo lúc này.");
+      form.reset();
+      setReportStatus("success");
+      setReportFeedback(result.reportId ? `Đã gửi · mã ${result.reportId.slice(0, 8)}` : "Đã gửi báo cáo.");
+    } catch (error) {
+      setReportStatus("error");
+      setReportFeedback(error instanceof Error ? error.message : "Không thể gửi báo cáo lúc này.");
+    }
+  };
   const provinceHistory = useMemo(() => {
     if (!selectedProvince) return [];
     const provinceFeature = fallbackProvinceData.find(
@@ -589,13 +704,29 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
   }, [activeIndex]);
 
   useEffect(() => {
-    if (!webglUnavailable || fallbackHistoricalData.length) return;
+    if (sourceManifest) return;
     let cancelled = false;
-    void fetch("/data/vietnam-historical-territories.geojson")
+    void fetch(`/data/historical-territories/index.json?v=${historicalDataVersion}`)
       .then((response) => response.json())
-      .then((historical) => {
+      .then((manifest) => {
+        if (!cancelled) setSourceManifest(manifest as HistoricalSourceManifest);
+      })
+      .catch(() => {
+        // The static starter source list remains available if the manifest cannot load.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sourceManifest]);
+
+  useEffect(() => {
+    if (!webglUnavailable) return;
+    let cancelled = false;
+    const periodIds = [...new Set([activePeriod.id, comparePeriod.id])];
+    void Promise.all(periodIds.map((periodId) => fetch(historicalPeriodPath(periodId)).then((response) => response.json())))
+      .then((collections) => {
         if (!cancelled) {
-          setFallbackHistoricalData((historical as { features: HistoricalGeoFeature[] }).features);
+          setFallbackHistoricalData(collections.flatMap((collection) => (collection as { features: HistoricalGeoFeature[] }).features));
         }
       })
       .catch(() => {
@@ -604,7 +735,7 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
     return () => {
       cancelled = true;
     };
-  }, [fallbackHistoricalData.length, webglUnavailable]);
+  }, [activePeriod.id, comparePeriod.id, webglUnavailable]);
 
   useEffect(() => {
     if ((!webglUnavailable && !selectedProvince) || fallbackProvinceData.length) return;
@@ -642,9 +773,9 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
           container: containerRef.current,
           style: baseStyle,
           center: periods[initialPeriodIndex].center,
-          zoom: periods[initialPeriodIndex].zoom,
-          pitch: 52,
-          bearing: -8,
+          zoom: periods[initialPeriodIndex].zoom - depthPresets[0].cameraZoomOut,
+          pitch: depthPresets[0].pitch,
+          bearing: 0,
           minZoom: 3,
           maxZoom: 8,
           maxPitch: 68,
@@ -676,30 +807,56 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
       map.on("load", () => {
         map.addSource("historical-territories", {
           type: "geojson",
-          data: "/data/vietnam-historical-territories.geojson",
+          data: historicalPeriodPath(periods[initialPeriodIndex].id),
+          maxzoom: 8,
+          buffer: 64,
+        });
+
+        map.addSource("historical-territories-compare", {
+          type: "geojson",
+          data: emptyFeatureCollection,
+          maxzoom: 8,
+          buffer: 64,
         });
 
         map.addSource("modern-provinces", {
           type: "geojson",
           data: "/data/vietnam-provinces-2025.geojson",
           promoteId: "code",
+          maxzoom: 8,
+          buffer: 64,
+        });
+
+        map.addSource("modern-boundary", {
+          type: "geojson",
+          data: historicalPeriodPath("viet-nam-hien-dai"),
+          maxzoom: 8,
+          buffer: 64,
         });
 
         map.addSource("island-points", {
           type: "geojson",
           data: islandData,
+          maxzoom: 8,
+          buffer: 64,
         });
 
         map.addSource("historical-events", {
           type: "geojson",
           data: historicalEventData,
+          maxzoom: 8,
+          buffer: 64,
         });
 
         map.addLayer({
           id: "territory-glow",
           type: "line",
           source: "historical-territories",
-          filter: periodFilter(periods[initialPeriodIndex].id),
+          filter: [
+            "all",
+            periodFilter(periods[initialPeriodIndex].id),
+            ["==", ["get", "control"], "direct"],
+          ],
           paint: {
             "line-color": ["get", "color"],
             "line-width": 10,
@@ -712,13 +869,13 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
           {
             id: "compare-volume",
             type: "fill-extrusion",
-            source: "historical-territories",
+            source: "historical-territories-compare",
             filter: periodFilter(periods[defaultCompareIndex].id),
             layout: { visibility: "none" },
             paint: {
               "fill-extrusion-color": "#3a9392",
-              "fill-extrusion-height": ["*", ["get", "height"], 0.72],
-              "fill-extrusion-base": 120,
+              "fill-extrusion-height": ["*", ["get", "height"], depthPresets[0].extrusion * 0.72],
+              "fill-extrusion-base": 10,
               "fill-extrusion-opacity": 0.44,
               "fill-extrusion-vertical-gradient": true,
             },
@@ -730,7 +887,7 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
           {
             id: "compare-outline",
             type: "line",
-            source: "historical-territories",
+            source: "historical-territories-compare",
             filter: periodFilter(periods[defaultCompareIndex].id),
             layout: { visibility: "none" },
             paint: {
@@ -753,10 +910,10 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
             ["==", ["get", "control"], "influence"],
           ],
           paint: {
-            "fill-extrusion-color": ["get", "color"],
-            "fill-extrusion-height": ["get", "height"],
-            "fill-extrusion-base": 250,
-            "fill-extrusion-opacity": 0.34,
+            "fill-extrusion-color": "#668d82",
+            "fill-extrusion-height": ["*", ["get", "height"], depthPresets[0].extrusion * 0.16],
+            "fill-extrusion-base": 20,
+            "fill-extrusion-opacity": 0.2,
             "fill-extrusion-vertical-gradient": true,
           },
         });
@@ -771,10 +928,10 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
             ["==", ["get", "control"], "autonomous"],
           ],
           paint: {
-            "fill-extrusion-color": ["get", "color"],
-            "fill-extrusion-height": ["get", "height"],
-            "fill-extrusion-base": 250,
-            "fill-extrusion-opacity": 0.58,
+            "fill-extrusion-color": "#9a8261",
+            "fill-extrusion-height": ["*", ["get", "height"], depthPresets[0].extrusion * 0.48],
+            "fill-extrusion-base": 20,
+            "fill-extrusion-opacity": 0.46,
             "fill-extrusion-vertical-gradient": true,
           },
         });
@@ -790,8 +947,8 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
           ],
           paint: {
             "fill-extrusion-color": ["get", "color"],
-            "fill-extrusion-height": ["get", "height"],
-            "fill-extrusion-base": 250,
+            "fill-extrusion-height": ["*", ["get", "height"], depthPresets[0].extrusion],
+            "fill-extrusion-base": 20,
             "fill-extrusion-opacity": 0.84,
             "fill-extrusion-vertical-gradient": true,
           },
@@ -801,11 +958,49 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
           id: "territory-outline",
           type: "line",
           source: "historical-territories",
-          filter: periodFilter(periods[initialPeriodIndex].id),
+          filter: [
+            "all",
+            periodFilter(periods[initialPeriodIndex].id),
+            ["==", ["get", "control"], "direct"],
+          ],
           paint: {
             "line-color": "#f8e7bd",
             "line-width": 1.4,
             "line-opacity": 0.82,
+          },
+        });
+
+        map.addLayer({
+          id: "territory-autonomous-outline",
+          type: "line",
+          source: "historical-territories",
+          filter: [
+            "all",
+            periodFilter(periods[initialPeriodIndex].id),
+            ["==", ["get", "control"], "autonomous"],
+          ],
+          paint: {
+            "line-color": "#e2bf7d",
+            "line-width": 2.2,
+            "line-dasharray": [2.5, 1.25],
+            "line-opacity": 0.95,
+          },
+        });
+
+        map.addLayer({
+          id: "territory-influence-outline",
+          type: "line",
+          source: "historical-territories",
+          filter: [
+            "all",
+            periodFilter(periods[initialPeriodIndex].id),
+            ["==", ["get", "control"], "influence"],
+          ],
+          paint: {
+            "line-color": "#8fc3b5",
+            "line-width": 1.8,
+            "line-dasharray": [0.8, 1.8],
+            "line-opacity": 0.9,
           },
         });
 
@@ -816,6 +1011,19 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
           paint: {
             "fill-color": "#d7a75a",
             "fill-opacity": 0.055,
+          },
+        });
+
+        map.addLayer({
+          id: "modern-country-boundary",
+          type: "line",
+          source: "modern-boundary",
+          layout: { visibility: "none" },
+          paint: {
+            "line-color": "#a9d2c3",
+            "line-width": ["interpolate", ["linear"], ["zoom"], 3, 1.1, 6, 2.2],
+            "line-opacity": 0.9,
+            "line-dasharray": [2.4, 1.5],
           },
         });
 
@@ -1010,20 +1218,6 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
           },
           "territory-glow",
         );
-        map.addLayer(
-          {
-            id: "coastline",
-            type: "line",
-            source: "world",
-            "source-layer": "countries",
-            paint: {
-              "line-color": "rgba(216, 195, 151, .32)",
-              "line-width": 0.8,
-            },
-          },
-          "territory-glow",
-        );
-
         map.addSource("relief", {
           type: "raster-dem",
           url: "https://demotiles.maplibre.org/terrain-tiles/tiles.json",
@@ -1034,6 +1228,7 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
             id: "relief-shade",
             type: "hillshade",
             source: "relief",
+            layout: { visibility: "none" },
             paint: {
               "hillshade-shadow-color": "#07100e",
               "hillshade-highlight-color": "#6b725e",
@@ -1043,8 +1238,6 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
           },
           "territory-glow",
         );
-        map.setTerrain({ source: "relief", exaggeration: 1.15 });
-
         map.addLayer({
           id: "uncertain-outline",
           type: "line",
@@ -1194,9 +1387,12 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
     if (!mapReady || !mapRef.current) return;
     const map = mapRef.current;
     const filter = periodFilter(activePeriod.id);
-    ["territory-glow", "territory-outline"].forEach((layer) => {
-      if (map.getLayer(layer)) map.setFilter(layer, filter);
-    });
+    (map.getSource("historical-territories") as GeoJSONSource | undefined)?.setData(
+      historicalPeriodPath(activePeriod.id),
+    );
+    if (map.getLayer("territory-glow")) {
+      map.setFilter("territory-glow", ["all", filter, ["==", ["get", "control"], "direct"]]);
+    }
     const controlLayers = [
       ["territory-volume", "direct"],
       ["territory-autonomous", "autonomous"],
@@ -1206,6 +1402,13 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
       if (map.getLayer(layer)) {
         map.setFilter(layer, ["all", filter, ["==", ["get", "control"], control]]);
       }
+    });
+    [
+      ["territory-outline", "direct"],
+      ["territory-autonomous-outline", "autonomous"],
+      ["territory-influence-outline", "influence"],
+    ].forEach(([layer, control]) => {
+      if (map.getLayer(layer)) map.setFilter(layer, ["all", filter, ["==", ["get", "control"], control]]);
     });
     if (map.getLayer("uncertain-outline")) {
       map.setFilter("uncertain-outline", [
@@ -1228,10 +1431,12 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
       : activePeriod.center;
     map.easeTo({
       center: focusCenter,
-      zoom: compareEnabled ? Math.max(3, Math.min(activePeriod.zoom, comparePeriod.zoom) - 0.18) : activePeriod.zoom,
+      zoom: compareEnabled
+        ? Math.max(3, Math.min(activePeriod.zoom, comparePeriod.zoom) - 0.18 - mapZoomOut)
+        : Math.max(3, activePeriod.zoom - mapZoomOut),
       pitch: mapPitch,
-      bearing: cinematic3dEnabled ? (activeIndex % 2 === 0 ? -24 : 24) : activeIndex % 2 === 0 ? -7 : 7,
-      duration: 1100,
+      bearing: cinematic3dEnabled ? (activeIndex % 2 === 0 ? -24 : 24) : 0,
+      duration: 780,
       essential: true,
     });
 
@@ -1240,7 +1445,7 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
     void import("maplibre-gl").then((maplibregl) => {
       activePeriod.markers.forEach((item) => {
         const element = document.createElement("div");
-        element.className = "place-marker";
+        element.className = `place-marker${item.kind === "maritime" ? " maritime-marker" : ""}`;
         element.innerHTML = `<i></i><span>${item.name}<small>${item.role}</small></span>`;
         markerRefs.current.push(
           new maplibregl.Marker({ element, anchor: "left" })
@@ -1249,12 +1454,14 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
         );
       });
     });
-  }, [activeIndex, activePeriod, cinematic3dEnabled, compareEnabled, comparePeriod, mapPitch, mapReady]);
+  }, [activeIndex, activePeriod, cinematic3dEnabled, compareEnabled, comparePeriod, mapPitch, mapReady, mapZoomOut]);
 
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
     const map = mapRef.current;
     const visibility = compareEnabled ? "visible" : "none";
+    const compareSource = map.getSource("historical-territories-compare") as GeoJSONSource | undefined;
+    compareSource?.setData(compareEnabled ? historicalPeriodPath(comparePeriod.id) : emptyFeatureCollection);
     ["compare-volume", "compare-outline"].forEach((layer) => {
       if (!map.getLayer(layer)) return;
       map.setFilter(layer, periodFilter(comparePeriod.id));
@@ -1299,23 +1506,29 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
     const map = mapRef.current;
-    const height = terrainEnabled
-      ? sharp3dEnabled
-        ? ["*", ["get", "height"], activeDepthPreset.extrusion]
-        : ["get", "height"]
-      : 0;
-    ["territory-volume", "territory-autonomous", "territory-influence"].forEach((layer) => {
+    const depthScale = sharp3dEnabled ? activeDepthPreset.extrusion : depthPresets[0].extrusion;
+    const controlDepths = [
+      ["territory-volume", 1],
+      ["territory-autonomous", 0.48],
+      ["territory-influence", 0.16],
+    ] as const;
+    controlDepths.forEach(([layer, controlScale]) => {
       if (!map.getLayer(layer)) return;
-      map.setPaintProperty(layer, "fill-extrusion-base", terrainEnabled ? 250 : 0);
-      map.setPaintProperty(layer, "fill-extrusion-height", height);
+      map.setPaintProperty(layer, "fill-extrusion-base", terrainEnabled ? 20 : 0);
+      map.setPaintProperty(
+        layer,
+        "fill-extrusion-height",
+        terrainEnabled ? ["*", ["get", "height"], depthScale * controlScale] : 1,
+      );
+      map.setPaintProperty(layer, "fill-extrusion-vertical-gradient", terrainEnabled);
     });
     if (map.getLayer("compare-volume")) {
-      map.setPaintProperty("compare-volume", "fill-extrusion-base", terrainEnabled ? 120 : 0);
+      map.setPaintProperty("compare-volume", "fill-extrusion-base", terrainEnabled ? 10 : 0);
       map.setPaintProperty(
         "compare-volume",
         "fill-extrusion-height",
         terrainEnabled
-          ? ["*", ["get", "height"], sharp3dEnabled ? activeDepthPreset.extrusion * 0.72 : 0.72]
+          ? ["*", ["get", "height"], (sharp3dEnabled ? activeDepthPreset.extrusion : depthPresets[0].extrusion) * 0.72]
           : 0,
       );
     }
@@ -1389,13 +1602,6 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
 
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
-    const visibility = contextEnabled ? "visible" : "none";
-    ["countries-fill", "coastline"].forEach((layer) => {
-      if (mapRef.current?.getLayer(layer)) {
-        mapRef.current.setLayoutProperty(layer, "visibility", visibility);
-      }
-    });
-
     neighborMarkerRefs.current.forEach((marker) => marker.remove());
     neighborMarkerRefs.current = [];
     if (!contextEnabled) return;
@@ -1422,16 +1628,19 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
 
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
+    if (mapRef.current.getLayer("modern-country-boundary")) {
+      mapRef.current.setLayoutProperty(
+        "modern-country-boundary",
+        "visibility",
+        modernBoundaryEnabled ? "visible" : "none",
+      );
+    }
+  }, [mapReady, modernBoundaryEnabled]);
+
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
     const visibility = provincesEnabled ? "visible" : "none";
-    [
-      "province-reference-fill",
-      "province-boundaries",
-      "province-hit-area",
-      "province-hover",
-      "province-selected",
-      "province-hover-outline",
-      "province-selected-outline",
-    ].forEach((layer) => {
+    modernProvinceLayerIds.forEach((layer) => {
       if (mapRef.current?.getLayer(layer)) {
         mapRef.current.setLayoutProperty(layer, "visibility", visibility);
       }
@@ -1441,7 +1650,7 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
     const visibility = islandsEnabled ? "visible" : "none";
-    ["island-points", "island-hit-area", "island-hover", "island-selected"].forEach((layer) => {
+    modernIslandLayerIds.forEach((layer) => {
       if (mapRef.current?.getLayer(layer)) {
         mapRef.current.setLayoutProperty(layer, "visibility", visibility);
       }
@@ -1479,6 +1688,7 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setSourcesOpen(false);
+        setReportOpen(false);
         setControlsOpen(false);
         setCompareEnabled(false);
         setStoryModeEnabled(false);
@@ -1507,9 +1717,11 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
       : activePeriod.center;
     mapRef.current?.easeTo({
       center,
-      zoom: compareEnabled ? Math.max(3, Math.min(activePeriod.zoom, comparePeriod.zoom) - 0.18) : activePeriod.zoom,
+      zoom: compareEnabled
+        ? Math.max(3, Math.min(activePeriod.zoom, comparePeriod.zoom) - 0.18 - mapZoomOut)
+        : Math.max(3, activePeriod.zoom - mapZoomOut),
       pitch: mapPitch,
-      bearing: activeIndex % 2 === 0 ? -7 : 7,
+      bearing: 0,
       duration: 900,
     });
   };
@@ -1804,6 +2016,16 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
             <BookOpen size={16} /> Nguồn tư liệu
           </button>
           <button
+            className="text-button report-trigger"
+            onClick={() => {
+              setReportOpen(true);
+              setReportStatus("idle");
+              setReportFeedback("");
+            }}
+          >
+            <Flag size={16} /> Báo sai
+          </button>
+          <button
             className="icon-button ui-hide-button"
             onClick={() => {
               setUiHidden(true);
@@ -1948,7 +2170,7 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
           </div>
         </div>
         <label>
-          <span><Mountain size={15} /> Địa hình 3D</span>
+          <span><Mountain size={15} /> Chế độ 3D · neo footprint</span>
           <input
             type="checkbox"
             checked={terrainEnabled}
@@ -2019,8 +2241,17 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
           </div>
         </details>
         <label>
-          <span><MapPinned size={15} /> Nước lân cận</span>
+          <span><MapPinned size={15} /> Địa danh cùng thời kỳ</span>
           <input type="checkbox" checked={contextEnabled} onChange={(event) => setContextEnabled(event.target.checked)} />
+          <i />
+        </label>
+        <label>
+          <span><MapPinned size={15} /> Ranh giới Việt Nam hiện đại</span>
+          <input
+            type="checkbox"
+            checked={modernBoundaryEnabled}
+            onChange={(event) => setModernBoundaryEnabled(event.target.checked)}
+          />
           <i />
         </label>
         <label>
@@ -2144,13 +2375,14 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
       {legendOpen ? <aside className="legend-card">
         <button className="legend-close" onClick={() => setLegendOpen(false)} aria-label="Đóng chú giải"><X size={14} /></button>
         <span><i className="legend-direct" /> Kiểm soát trực tiếp</span>
-        <span><i className="legend-autonomous" /> Tự trị / phụ thuộc</span>
+        <span><i className="legend-autonomous" /> Tự trị / phụ thuộc / bị chiếm</span>
         <span><i className="legend-influence" /> Ảnh hưởng</span>
         <span><i className="legend-uncertain" /> Ranh giới ước lệ</span>
-        <span><i className="legend-province" /> Tỉnh/thành 2025</span>
-        <span><i className="legend-island" /> Đảo / quần đảo</span>
+        {modernBoundaryEnabled && <span><i className="legend-province" /> Ranh giới Việt Nam hiện đại · tham chiếu</span>}
+        {provincesEnabled && <span><i className="legend-province" /> Tỉnh/thành 2025 · tham chiếu</span>}
+        {islandsEnabled && <span><i className="legend-island" /> Đảo / quần đảo · tham chiếu hiện đại</span>}
         <span><i className="legend-event" /> Sự kiện lịch sử</span>
-        <small>Tọa độ WGS84. Polygon lịch sử chỉ minh họa không gian kiểm soát/ảnh hưởng, không phải địa giới hay tuyên bố chủ quyền hiện đại. Điểm sự kiện không phải ranh giới chiến trường.</small>
+        <small>Tọa độ WGS84. Đường sáng ở chân khối là footprint bám đường bờ; mặt trên khối dày sẽ dịch theo phối cảnh camera. Polygon lịch sử chỉ minh họa không gian kiểm soát/ảnh hưởng, không phải địa giới hay tuyên bố chủ quyền hiện đại.</small>
       </aside> : (
         <button className="panel-reopen legend-reopen" onClick={() => setLegendOpen(true)} aria-label="Mở chú giải" title="Mở chú giải">
           <CircleHelp size={17} />
@@ -2305,7 +2537,10 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
       </section>
 
       <div className="modern-context-note">
-        <ChevronDown size={13} /> Tỉnh/thành và địa danh biển đảo là lớp tham chiếu hiện đại (2025)
+        <ChevronDown size={13} />
+        {modernBoundaryEnabled || provincesEnabled || islandsEnabled
+          ? "Đang bật lớp tham chiếu hiện đại (2025)"
+          : `Đang hiển thị lớp phục dựng ${activePeriod.displayYear} · địa giới hiện đại đã tắt`}
       </div>
 
       {sourcesOpen && (
@@ -2319,13 +2554,64 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
               <button onClick={() => setSourcesOpen(false)} aria-label="Đóng nguồn tư liệu"><X size={20} /></button>
             </div>
             <p className="drawer-intro">
-              Đường bờ và địa giới tỉnh hiện đại dùng dữ liệu WGS84 chi tiết. Lãnh thổ lịch sử vẫn là phục dựng theo từng lớp độ chắc chắn, không nên dùng như bằng chứng pháp lý hoặc biên giới tuyệt đối.
+              Hai mươi lăm lát cắt lịch sử được trace từ vùng màu trên ảnh bản đồ nguồn và georeference ở tỷ lệ khu vực. Dữ liệu hành chính WGS84 chỉ dùng cho mốc hiện đại và lớp tham chiếu 2025; các polygon lịch sử không nên dùng như bằng chứng pháp lý hoặc biên giới tuyệt đối.
             </p>
             <div className="method-grid">
               <article><span>01</span><h3>Phân lớp quyền lực</h3><p>Tách kiểm soát trực tiếp, tự trị, ảnh hưởng và tranh chấp.</p></article>
               <article><span>02</span><h3>Gắn độ chắc chắn</h3><p>Biên giới cổ đại dùng nét đứt và chú thích nguồn phục dựng.</p></article>
               <article><span>03</span><h3>Không dùng mốc giả</h3><p>Sự kiện một năm được tách khỏi trạng thái lãnh thổ kéo dài.</p></article>
             </div>
+            {activeSourceGroups && (
+              <>
+                {activeSourceGroups.geometrySources.map((source) => (
+                  <figure className="source-map-preview" key={`preview-${activePeriod.id}-${source.imageUrl}`}>
+                    <div className="source-map-preview-heading">
+                      <span>Bản đồ gốc dùng để trace</span>
+                      <small>{source.imageYear}</small>
+                    </div>
+                    <a className="source-map-preview-image" href={source.imageUrl} target="_blank" rel="noreferrer">
+                      {/* Keep the third-party source image unmodified; it is not a first-party optimized asset. */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={source.imageUrl}
+                        alt={`Bản đồ nguồn ${source.imageYear} dùng để phục dựng mốc ${activePeriod.displayYear}`}
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                      />
+                    </a>
+                    <figcaption>
+                      <span>Ảnh bên thứ ba · georeference sai số ước lượng {source.georeferenceAccuracyKm ?? 50} km</span>
+                      <div>
+                        <a href={source.imageUrl} target="_blank" rel="noreferrer">Mở ảnh gốc <ArrowRight size={13} /></a>
+                        <a href={source.pageUrl} target="_blank" rel="noreferrer">Trang đăng ảnh <ArrowRight size={13} /></a>
+                      </div>
+                    </figcaption>
+                  </figure>
+                ))}
+                <h3 className="source-list-title">Nguồn cho mốc {activePeriod.displayYear}</h3>
+                <ul className="source-list">
+                  {activeSourceGroups.geometrySources.map((source) => (
+                    <li key={`${activePeriod.id}-${source.imageUrl}`}>
+                      <span>ẢNH</span>
+                      <a href={source.imageUrl} target="_blank" rel="noreferrer" title={`Trace màu, georeference sai số ước lượng ${source.georeferenceAccuracyKm ?? 50} km`}>
+                        Bản đồ {source.imageYear} dùng để trace polygon
+                        <ArrowRight size={15} />
+                      </a>
+                    </li>
+                  ))}
+                  {[...activeSourceGroups.evidence, ...activeSourceGroups.references].map((source, index) => (
+                    <li key={`${activePeriod.id}-${source.id}`}>
+                      <span>{index < activeSourceGroups.evidence.length ? "GỐC" : "ĐC"}</span>
+                      <a href={source.href} target="_blank" rel="noreferrer" title={source.license}>
+                        {source.label}
+                        {source.role === "illustrative-image-geometry" ? " · ảnh dùng để trace" : ""}
+                        <ArrowRight size={15} />
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
             <h3 className="source-list-title">Nguồn khởi đầu</h3>
             <ul className="source-list">
               {sourceLinks.map((source, index) => (
@@ -2337,6 +2623,70 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
             </ul>
             <div className="drawer-footnote">Phiên bản dữ liệu: prototype 0.1 · Cập nhật tháng 08/2026</div>
           </aside>
+        </div>
+      )}
+
+      {reportOpen && (
+        <div className="drawer-backdrop report-backdrop" role="presentation" onMouseDown={() => setReportOpen(false)}>
+          <section
+            className="report-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="report-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="drawer-heading">
+              <div>
+                <p>Đóng góp dữ liệu</p>
+                <h2 id="report-title">Báo sai bản đồ</h2>
+              </div>
+              <button onClick={() => setReportOpen(false)} aria-label="Đóng báo cáo"><X size={20} /></button>
+            </div>
+            <p className="report-context">
+              Mốc đang báo: <strong>{activePeriod.displayYear} · {activePeriod.name}</strong>
+            </p>
+            <form className="report-form" onSubmit={submitReport}>
+              <label>
+                <span>Loại vấn đề</span>
+                <select name="type" defaultValue="Ranh giới bản đồ" required>
+                  <option>Ranh giới bản đồ</option>
+                  <option>Mốc thời gian</option>
+                  <option>Nguồn tư liệu</option>
+                  <option>Nhãn hoặc chú thích</option>
+                  <option>Lỗi hiển thị</option>
+                  <option>Khác</option>
+                </select>
+              </label>
+              <label>
+                <span>Mô tả</span>
+                <textarea
+                  name="message"
+                  minLength={12}
+                  maxLength={2500}
+                  rows={7}
+                  placeholder="Mốc nào chưa đúng, vị trí nào lệch và nguồn đối chiếu nếu có…"
+                  required
+                />
+              </label>
+              <label>
+                <span>Email phản hồi <small>không bắt buộc</small></span>
+                <input name="email" type="email" maxLength={160} autoComplete="email" placeholder="ban@example.com" />
+              </label>
+              <label className="report-honeypot" aria-hidden="true">
+                <span>Website</span>
+                <input name="website" type="text" tabIndex={-1} autoComplete="off" />
+              </label>
+              <div className="report-actions">
+                <p className={reportStatus === "error" ? "is-error" : reportStatus === "success" ? "is-success" : ""} aria-live="polite">
+                  {reportFeedback || "Báo cáo sẽ được gửi tới nhóm biên tập qua email."}
+                </p>
+                <button type="submit" disabled={reportStatus === "sending"}>
+                  {reportStatus === "sending" ? "Đang gửi…" : "Gửi báo cáo"}
+                  <ArrowRight size={15} />
+                </button>
+              </div>
+            </form>
+          </section>
         </div>
       )}
     </main>

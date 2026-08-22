@@ -58,8 +58,11 @@ app/
   data/historical.ts                Dữ liệu thời kỳ, sự kiện và nguồn tham khảo
   globals.css                       Design system và responsive layout
 public/data/
-  vietnam-historical-territories.geojson
+  vietnam-historical-territories.geojson  Bản cũ lưu để kiểm toán + lát cắt hiện đại
+  historical-territories/           26 lát cắt tối ưu + manifest nguồn
   vietnam-provinces-2025.geojson
+source-data/
+  historical-territories-image-traced.geojson  25 lát cắt trace từ ảnh lịch sử
 ```
 
 ## Nguyên tắc dữ liệu
@@ -71,6 +74,8 @@ Ranh giới lịch sử trong dự án là lớp phục dựng mang tính minh h
 - Vùng ảnh hưởng.
 
 Ranh giới ước lệ, lớp tỉnh thành năm 2025 và vị trí biển đảo hiện đại được đánh dấu riêng để tránh nhầm lẫn giữa dữ liệu lịch sử và địa giới hiện hành.
+
+Phương pháp phục dựng, các mốc đã đối chiếu và cách sinh dữ liệu tối ưu được ghi tại [`docs/historical-polygon-methodology.md`](docs/historical-polygon-methodology.md). Chạy `npm run data:trace:images` khi cần trace lại ảnh nguồn, rồi chạy `npm run data:historical` để sinh dữ liệu runtime.
 
 ## Nguồn tham khảo
 
