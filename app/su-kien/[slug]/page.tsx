@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, CalendarDays, CheckCircl
 import { eventDetails, getEventDetail } from "../../data/events";
 import BrandMark from "../../components/BrandMark";
 import SiteFooter from "../../components/SiteFooter";
+import { siteName, siteUrl } from "../../site-metadata";
 
 type EventPageProps = { params: Promise<{ slug: string }> };
 
@@ -19,9 +20,13 @@ export async function generateMetadata({ params }: EventPageProps): Promise<Meta
   return {
     title: `${event.name} ${event.yearLabel}`,
     description: event.dek,
+    alternates: { canonical: `/su-kien/${event.slug}` },
     openGraph: {
       title: `${event.name} ${event.yearLabel}`,
       description: event.dek,
+      url: `/su-kien/${event.slug}`,
+      siteName,
+      locale: "vi_VN",
       images: [{ url: event.media.src, alt: event.media.alt }],
       type: "article",
     },
@@ -50,7 +55,9 @@ export default async function EventDetailPage({ params }: EventPageProps) {
     dateModified: "2026-08-16",
     inLanguage: "vi-VN",
     image: event.media.src,
+    mainEntityOfPage: new URL(`/su-kien/${event.slug}`, siteUrl).toString(),
     author: { "@type": "Organization", name: "Việt Niên Sử" },
+    publisher: { "@type": "Organization", name: "Việt Niên Sử" },
   };
 
   return (

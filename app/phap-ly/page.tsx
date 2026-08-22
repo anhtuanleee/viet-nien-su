@@ -1,13 +1,14 @@
 /* eslint-disable @next/next/no-html-link-for-pages -- Vinext preview requires full-page navigation for these routes. */
-import type { Metadata } from "next";
 import { ArrowLeft, ExternalLink, Scale, ShieldCheck } from "lucide-react";
 import BrandMark from "../components/BrandMark";
 import SiteFooter from "../components/SiteFooter";
+import { createPageMetadata } from "../site-metadata";
 
-export const metadata: Metadata = {
+export const metadata = createPageMetadata({
   title: "Chủ sở hữu & giấy phép",
   description: "Thông tin chủ sở hữu, phiên bản và giấy phép của dự án Việt Niên Sử.",
-};
+  path: "/phap-ly",
+});
 
 export default function LegalPage() {
   return (

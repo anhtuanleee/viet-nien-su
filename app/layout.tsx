@@ -2,31 +2,57 @@ import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import ProjectConsoleInfo from "./components/ProjectConsoleInfo";
+import { defaultSocialImage, siteDescription, siteName, siteTitle, siteUrl } from "./site-metadata";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://dong-coi-viet.bargain-92losekcahfn.chatgpt.site"),
+  metadataBase: siteUrl,
   title: {
-    default: "Việt Niên Sử",
-    template: "%s · Việt Niên Sử",
+    default: siteTitle,
+    template: `%s | ${siteName}`,
   },
-  description: "Bản đồ 3D tương tác khám phá lãnh thổ Việt Nam qua các thời kỳ lịch sử.",
-  other: {
-    "codex-preview": "development",
+  description: siteDescription,
+  applicationName: siteName,
+  authors: [{ name: "Venn", url: "https://github.com/anhtuanleee" }],
+  creator: "Venn",
+  publisher: "Venn",
+  category: "education",
+  keywords: [
+    "lịch sử Việt Nam",
+    "bản đồ lịch sử Việt Nam",
+    "lãnh thổ Việt Nam",
+    "bản đồ 3D",
+    "Việt Niên Sử",
+    "Hoàng Sa",
+    "Trường Sa",
+  ],
+  alternates: { canonical: "/" },
+  referrer: "origin-when-cross-origin",
+  formatDetection: { telephone: false, address: false, email: false },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
   },
   openGraph: {
-    title: "Việt Niên Sử",
-    description: "Bản đồ lịch sử tương tác · Nội dung có nguồn",
+    title: siteTitle,
+    description: siteDescription,
     url: "/",
-    siteName: "Việt Niên Sử",
+    siteName,
     locale: "vi_VN",
     type: "website",
-    images: [{ url: "/og.png", width: 1200, height: 630, alt: "Việt Niên Sử — Bản đồ lịch sử tương tác, nội dung có nguồn" }],
+    images: [defaultSocialImage],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Việt Niên Sử",
-    description: "Bản đồ lịch sử tương tác · Nội dung có nguồn",
-    images: ["/og.png"],
+    title: siteTitle,
+    description: siteDescription,
+    images: [defaultSocialImage.url],
   },
   icons: {
     icon: [{ url: "/icon.png", type: "image/png", sizes: "512x512" }],

@@ -1,13 +1,14 @@
 /* eslint-disable @next/next/no-html-link-for-pages -- Vinext preview requires full-page navigation for these routes. */
-import type { Metadata } from "next";
 import { ArrowLeft, Database, Eye, Globe2 } from "lucide-react";
 import BrandMark from "../components/BrandMark";
 import SiteFooter from "../components/SiteFooter";
+import { createPageMetadata } from "../site-metadata";
 
-export const metadata: Metadata = {
+export const metadata = createPageMetadata({
   title: "Quyền riêng tư",
   description: "Chính sách quyền riêng tư của Việt Niên Sử.",
-};
+  path: "/quyen-rieng-tu",
+});
 
 export default function PrivacyPage() {
   return (

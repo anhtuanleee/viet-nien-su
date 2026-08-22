@@ -1,14 +1,15 @@
 /* eslint-disable @next/next/no-html-link-for-pages -- Vinext preview requires full-page navigation for these routes. */
-import type { Metadata } from "next";
 import { ArrowLeft, ArrowUpRight, BookOpen, Clock3, MapPin } from "lucide-react";
 import { historicalEvents, publishedEventDetails } from "../data/events";
 import BrandMark from "../components/BrandMark";
 import SiteFooter from "../components/SiteFooter";
+import { createPageMetadata } from "../site-metadata";
 
-export const metadata: Metadata = {
+export const metadata = createPageMetadata({
   title: "Hồ sơ sự kiện",
   description: "Hồ sơ có nguồn dẫn về những trận đánh và chiến dịch tiêu biểu trong lịch sử Việt Nam.",
-};
+  path: "/su-kien",
+});
 
 export default function EventsPage() {
   const upcomingEvents = historicalEvents

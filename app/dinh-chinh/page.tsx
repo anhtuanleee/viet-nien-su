@@ -1,13 +1,14 @@
 /* eslint-disable @next/next/no-html-link-for-pages -- Vinext preview requires full-page navigation for these routes. */
-import type { Metadata } from "next";
 import { ArrowLeft, ArrowUpRight, BadgeCheck, CircleAlert, FileWarning } from "lucide-react";
 import BrandMark from "../components/BrandMark";
 import SiteFooter from "../components/SiteFooter";
+import { createPageMetadata } from "../site-metadata";
 
-export const metadata: Metadata = {
+export const metadata = createPageMetadata({
   title: "Đính chính & báo lỗi",
   description: "Quy trình tiếp nhận, kiểm tra và công bố đính chính của Việt Niên Sử.",
-};
+  path: "/dinh-chinh",
+});
 
 export default function CorrectionsPage() {
   return (
