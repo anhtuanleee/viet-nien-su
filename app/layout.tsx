@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import ProjectConsoleInfo from "./components/ProjectConsoleInfo";
 
@@ -44,6 +45,7 @@ export default function RootLayout({
       <body className="antialiased">
         <ProjectConsoleInfo />
         {children}
+        <Analytics />
       </body>
     </html>
   );
