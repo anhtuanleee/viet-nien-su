@@ -304,8 +304,8 @@ const renderQualities: Array<{
   effectScale: number;
 }> = [
   { id: "low", label: "Low", note: "Tiết kiệm", maxPixelRatio: 1, effectScale: 0.55 },
-  { id: "medium", label: "Medium", note: "Cân bằng", maxPixelRatio: 1.5, effectScale: 0.78 },
-  { id: "high", label: "High", note: "Sắc nét", maxPixelRatio: 2, effectScale: 1 },
+  { id: "medium", label: "Medium", note: "Cân bằng", maxPixelRatio: 1.25, effectScale: 0.78 },
+  { id: "high", label: "High", note: "Sắc nét", maxPixelRatio: 1.75, effectScale: 1 },
 ];
 
 const detectDeviceRenderQuality = (): RenderQuality => {
@@ -589,21 +589,40 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
   }, [activeIndex]);
 
   useEffect(() => {
+    if (!webglUnavailable || fallbackHistoricalData.length) return;
     let cancelled = false;
-    void Promise.all([
-      fetch("/data/vietnam-historical-territories.geojson").then((response) => response.json()),
-      fetch("/data/vietnam-provinces-2025.geojson").then((response) => response.json()),
-    ]).then(([historical, provinces]) => {
-      if (cancelled) return;
-      setFallbackHistoricalData((historical as { features: HistoricalGeoFeature[] }).features);
-      setFallbackProvinceData((provinces as { features: ProvinceGeoFeature[] }).features);
-    }).catch(() => {
-      // The embedded simplified polygons remain available when static data cannot load.
-    });
+    void fetch("/data/vietnam-historical-territories.geojson")
+      .then((response) => response.json())
+      .then((historical) => {
+        if (!cancelled) {
+          setFallbackHistoricalData((historical as { features: HistoricalGeoFeature[] }).features);
+        }
+      })
+      .catch(() => {
+        // The embedded simplified polygons remain available when static data cannot load.
+      });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [fallbackHistoricalData.length, webglUnavailable]);
+
+  useEffect(() => {
+    if ((!webglUnavailable && !selectedProvince) || fallbackProvinceData.length) return;
+    let cancelled = false;
+    void fetch("/data/vietnam-provinces-2025.geojson")
+      .then((response) => response.json())
+      .then((provinces) => {
+        if (!cancelled) {
+          setFallbackProvinceData((provinces as { features: ProvinceGeoFeature[] }).features);
+        }
+      })
+      .catch(() => {
+        // Province history remains optional when the detailed geometry cannot load.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [fallbackProvinceData.length, selectedProvince, webglUnavailable]);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -620,18 +639,20 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
       let map: MapLibreMap;
       try {
         map = new maplibregl.Map({
-        container: containerRef.current,
-        style: baseStyle,
-        center: periods[initialPeriodIndex].center,
-        zoom: periods[initialPeriodIndex].zoom,
-        pitch: 52,
-        bearing: -8,
-        minZoom: 3,
-        maxZoom: 8,
-        maxPitch: 68,
-        attributionControl: false,
-        canvasContextAttributes: { antialias: true },
-        pixelRatio: Math.min(window.devicePixelRatio || 1, initialQuality.maxPixelRatio),
+          container: containerRef.current,
+          style: baseStyle,
+          center: periods[initialPeriodIndex].center,
+          zoom: periods[initialPeriodIndex].zoom,
+          pitch: 52,
+          bearing: -8,
+          minZoom: 3,
+          maxZoom: 8,
+          maxPitch: 68,
+          attributionControl: false,
+          canvasContextAttributes: { antialias: false },
+          pixelRatio: Math.min(window.devicePixelRatio || 1, initialQuality.maxPixelRatio),
+          renderWorldCopies: false,
+          fadeDuration: initialQualityId === "low" ? 0 : 160,
         });
       } catch {
         setWebglUnavailable(true);
@@ -811,14 +832,11 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
 
         map.addLayer({
           id: "province-hit-area",
-          type: "fill-extrusion",
+          type: "fill",
           source: "modern-provinces",
           paint: {
-            "fill-extrusion-color": "#d7a75a",
-            "fill-extrusion-base": 15050,
-            "fill-extrusion-height": 15100,
-            "fill-extrusion-opacity": 0.01,
-            "fill-extrusion-vertical-gradient": false,
+            "fill-color": "#d7a75a",
+            "fill-opacity": 0.01,
           },
         });
 
@@ -1246,6 +1264,7 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
 
     let highlighted = true;
     const pulse = window.setInterval(() => {
+      if (document.hidden) return;
       if (!map.getLayer("compare-outline")) return;
       highlighted = !highlighted;
       map.setPaintProperty("compare-outline", "line-opacity", highlighted ? 0.95 : 0.42);
@@ -1262,12 +1281,14 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
         source: "relief",
         exaggeration: sharp3dEnabled ? activeDepthPreset.terrain : depthPresets[0].terrain,
       });
-      if (map.getLayer("relief-shade")) map.setLayoutProperty("relief-shade", "visibility", "visible");
+      if (map.getLayer("relief-shade")) {
+        map.setLayoutProperty("relief-shade", "visibility", renderQuality === "low" ? "none" : "visible");
+      }
     } else {
       map.setTerrain(null);
       if (map.getLayer("relief-shade")) map.setLayoutProperty("relief-shade", "visibility", "none");
     }
-  }, [activeDepthPreset.terrain, terrainEnabled, sharp3dEnabled, mapReady]);
+  }, [activeDepthPreset.terrain, terrainEnabled, sharp3dEnabled, mapReady, renderQuality]);
 
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
@@ -1297,10 +1318,6 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
           ? ["*", ["get", "height"], sharp3dEnabled ? activeDepthPreset.extrusion * 0.72 : 0.72]
           : 0,
       );
-    }
-    if (map.getLayer("province-hit-area")) {
-      map.setPaintProperty("province-hit-area", "fill-extrusion-base", terrainEnabled ? 15050 : 0);
-      map.setPaintProperty("province-hit-area", "fill-extrusion-height", terrainEnabled ? 15100 : 0);
     }
     if (map.getLayer("province-hover")) {
       map.setPaintProperty("province-hover", "fill-extrusion-base", terrainEnabled ? 15100 : 0);
@@ -1354,6 +1371,7 @@ export default function HistoricalAtlas({ initialPeriodId }: { initialPeriodId?:
     canvas.addEventListener("pointerdown", stopCinematic, { once: true });
     map.easeTo({ pitch: mapPitch, bearing: -28, duration: 1400, essential: true });
     cinematicTimerRef.current = window.setInterval(() => {
+      if (document.hidden) return;
       map.easeTo({
         bearing: map.getBearing() + 22,
         pitch: mapPitch,
